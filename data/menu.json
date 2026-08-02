@@ -1,0 +1,73 @@
+{
+  "categories": ["Biryani", "Combo", "Breads", "Beverages"],
+  "items": [
+    {
+      "id": "itm_mixed_biryani",
+      "name": "Mixed Biryani",
+      "category": "Biryani",
+      "veg": false,
+      "price": 220,
+      "photoUrl": "",
+      "stock": true,
+      "description": "Chicken + mutton pieces, dum-cooked basmati.",
+      "ordersToday": 21
+    },
+    {
+      "id": "itm_dum_biryani",
+      "name": "Dum Biryani",
+      "category": "Biryani",
+      "veg": false,
+      "price": 210,
+      "photoUrl": "",
+      "stock": true,
+      "description": "Slow-cooked chicken dum biryani.",
+      "ordersToday": 19
+    },
+    {
+      "id": "itm_egg_biryani",
+      "name": "Egg Biryani",
+      "category": "Biryani",
+      "veg": false,
+      "price": 180,
+      "photoUrl": "",
+      "stock": true,
+      "description": "Boiled eggs tossed through masala rice.",
+      "ordersToday": 14
+    },
+    {
+      "id": "itm_veg_biryani",
+      "name": "Veg Biryani",
+      "category": "Biryani",
+      "veg": true,
+      "price": 190,
+      "photoUrl": "",
+      "stock": true,
+      "description": "Mixed vegetables, no meat or egg.",
+      "ordersToday": 3
+    },
+    {
+      "id": "itm_butter_naan",
+      "name": "Butter Naan",
+      "category": "Breads",
+      "veg": true,
+      "price": 90,
+      "photoUrl": "",
+      "stock": true,
+      "description": "Tandoor-baked, brushed with butter.",
+      "ordersToday": 16
+    },
+    {
+      "id": "itm_spl_biryani_feast",
+      "name": "Spl Biryani Feast (Combo)",
+      "category": "Combo",
+      "veg": false,
+      "price": 460,
+      "mrp": 480,
+      "photoUrl": "",
+      "stock": true,
+      "description": "2x Spl Biryani + 1x Cooldrink",
+      "comboItems": ["itm_mixed_biryani", "itm_mixed_biryani"],
+      "ordersToday": 5
+    }
+  ]
+}
