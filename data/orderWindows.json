@@ -1,0 +1,22 @@
+{
+  "timezone": "Asia/Kolkata",
+  "closedMessage": "Kitchen's prepping for the next round — we'll reopen soon. Thanks for your patience!",
+  "windows": [
+    {
+      "id": "morning",
+      "label": "Morning window",
+      "orderOpen": "09:00",
+      "orderClose": "12:30",
+      "pickupStart": "13:00",
+      "pickupEnd": "13:20"
+    },
+    {
+      "id": "evening",
+      "label": "Evening window",
+      "orderOpen": "14:00",
+      "orderClose": "18:30",
+      "pickupStart": "18:45",
+      "pickupEnd": "19:15"
+    }
+  ]
+}
