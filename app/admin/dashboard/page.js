@@ -40,15 +40,15 @@ export default function AdminDashboard() {
       <p style={{ color: '#555', marginBottom: 24 }}>
         Logged in as {session?.user?.email}
       </p>
-      
-        href="/admin/menu"
+      <button
+        onClick={() => router.push('/admin/menu')}
         style={{
-          display: 'inline-block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
-          borderRadius: 8, fontWeight: 700, textDecoration: 'none', marginBottom: 20,
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20,
         }}
       >
         Manage Menu
-      </a>
+      </button>
       <p style={{ color: '#888', marginBottom: 24 }}>
         Order windows and reports will go here next.
       </p>
