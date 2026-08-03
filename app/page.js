@@ -1,65 +1,159 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../lib/supabaseClient';
+
+function getOrderStatus(now, windows, closedMessage) {
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  for (const w of windows) {
+    const openMin = toMin(w.order_open);
+    const closeMin = toMin(w.order_close);
+    if (nowMin >= openMin && nowMin < closeMin) {
+      return { isOpen: true, window: w, closesInMinutes: closeMin - nowMin };
+    }
+  }
+  return { isOpen: false, message: closedMessage };
+}
 
 export default function Home() {
+  const router = useRouter();
+  const [menuItems, setMenuItems] = useState([]);
+  const [windows, setWindows] = useState([]);
+  const [closedMessage, setClosedMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState({});
+
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
+    setCart(savedCart);
+
+    async function loadData() {
+      const { data: items } = await supabase.from('menu_items').select('*').eq('in_stock', true);
+      const { data: windowRows } = await supabase.from('order_windows').select('*').eq('is_active', true);
+      const { data: settings } = await supabase.from('app_settings').select('closed_message').limit(1).single();
+
+      setMenuItems(items || []);
+      setWindows(windowRows || []);
+      setClosedMessage(settings?.closed_message || 'Ordering is currently closed.');
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('hb_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  if (loading) {
+    return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading menu...</div>;
+  }
+
+  const status = getOrderStatus(new Date(), windows, closedMessage);
+
+  const grouped = menuItems.reduce((acc, item) => {
+    acc[item.category] = acc[item.category] || [];
+    acc[item.category].push(item);
+    return acc;
+  }, {});
+
+  function addItem(id) {
+    setCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+  }
+  function removeItem(id) {
+    setCart((prev) => {
+      const next = { ...prev };
+      if (next[id] > 1) next[id] -= 1;
+      else delete next[id];
+      return next;
+    });
+  }
+
+  const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
+  const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
+    const item = menuItems.find((m) => m.id === id);
+    return sum + (item ? item.price * qty : 0);
+  }, 0);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{ maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 16, paddingBottom: cartCount > 0 ? 90 : 16, background: '#FFF8EE', minHeight: '100vh' }}>
+      <h1 style={{ fontSize: 24, marginBottom: 12 }}>Hungry Buds</h1>
+
+      <div style={{
+        padding: 14, borderRadius: 12, marginBottom: 20,
+        background: status.isOpen ? '#e6f5e9' : '#fdeeea',
+        color: status.isOpen ? '#256029' : '#a33c26', fontWeight: 600,
+      }}>
+        {status.isOpen ? `Ordering open — closes in ${status.closesInMinutes} minutes` : status.message}
+      </div>
+
+      {Object.keys(grouped).length === 0 && <p>No menu items found yet.</p>}
+
+      {Object.entries(grouped).map(([category, items]) => (
+        <div key={category} style={{ marginBottom: 28 }}>
+          <h2 style={{ fontSize: 19, marginBottom: 12 }}>{category}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {items.map((item) => {
+              const qty = cart[item.id] || 0;
+              return (
+                <div key={item.id} style={{
+                  display: 'flex', gap: 12, background: '#fff', borderRadius: 16,
+                  border: '1px solid #eee', padding: 10, alignItems: 'center',
+                }}>
+                  {item.photo_url ? (
+                    <img src={item.photo_url} alt={item.name} style={{ width: 74, height: 74, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 74, height: 74, borderRadius: 12, flexShrink: 0, background: '#F6C877' }} />
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ display: 'inline-block', width: 10, height: 10, border: '2px solid', borderColor: item.veg ? '#2e7d32' : '#c62828' }} />
+                      <strong>{item.name}</strong>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#777', margin: '2px 0 6px' }}>{item.description}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700 }}>₹{item.price}</span>
+                      {status.isOpen ? (
+                        qty === 0 ? (
+                          <button onClick={() => addItem(item.id)} style={{ border: '1.5px solid #D9642B', background: '#fff', color: '#D9642B', fontWeight: 700, padding: '5px 14px', borderRadius: 8, cursor: 'pointer' }}>ADD</button>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#D9642B', borderRadius: 8, padding: '4px 10px' }}>
+                            <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>−</button>
+                            <span style={{ color: '#fff', fontWeight: 700 }}>{qty}</span>
+                            <button onClick={() => addItem(item.id)} style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>+</button>
+                          </div>
+                        )
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#999' }}>Closed</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      ))}
+
+      {cartCount > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 460, margin: '0 auto',
+          background: '#2B2118', color: '#fff', padding: '14px 20px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0',
+        }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#C9B8A4' }}>{cartCount} item{cartCount > 1 ? 's' : ''}</div>
+            <div style={{ fontWeight: 700 }}>₹{cartTotal}</div>
+          </div>
+          <button onClick={() => router.push('/cart')} style={{ background: '#D9642B', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>
+            View cart →
+          </button>
         </div>
-      </main>
+      )}
     </div>
   );
 }
