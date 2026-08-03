@@ -1,12 +1,12 @@
 'use client';
-
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function AdminLogin() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [step, setStep] = useState('login'); // 'login' | 'checkEmail' | 'loggedIn'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,38 +20,14 @@ export default function AdminLogin() {
       password,
     });
 
-    if (signInError) {
-      setError('Incorrect email or password.');
-      setLoading(false);
-      return;
-    }
-
-    // Password correct — now send a secure confirmation link to email as step 2
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
-
     setLoading(false);
 
-    if (otpError) {
-      setError('Password correct, but failed to send verification email.');
+    if (signInError) {
+      setError('Incorrect email or password.');
       return;
     }
 
-    setStep('checkEmail');
-  }
-
-  if (step === 'checkEmail') {
-    return (
-      <div style={{ maxWidth: 400, margin: '80px auto', fontFamily: 'sans-serif', padding: 24, textAlign: 'center' }}>
-        <h2>Check your email</h2>
-        <p style={{ color: '#555' }}>
-          We sent a secure sign-in link to <strong>{email}</strong>.
-          Click it to finish logging in — this confirms it's really you.
-        </p>
-      </div>
-    );
+    router.push('/admin/dashboard');
   }
 
   return (
@@ -66,7 +42,6 @@ export default function AdminLogin() {
           required
           style={{ width: '100%', padding: 10, marginBottom: 14, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' }}
         />
-
         <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>Password</label>
         <input
           type="password"
@@ -75,9 +50,7 @@ export default function AdminLogin() {
           required
           style={{ width: '100%', padding: 10, marginBottom: 14, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' }}
         />
-
         {error && <p style={{ color: '#a33c26', fontSize: 13 }}>{error}</p>}
-
         <button
           type="submit"
           disabled={loading}
@@ -86,7 +59,7 @@ export default function AdminLogin() {
             border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer',
           }}
         >
-          {loading ? 'Checking...' : 'Continue'}
+          {loading ? 'Checking...' : 'Log in'}
         </button>
       </form>
     </div>
