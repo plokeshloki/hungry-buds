@@ -11,6 +11,7 @@ export default function Cart() {
   const [phone, setPhone] = useState('');
   const [handlingFee, setHandlingFee] = useState(5);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -23,6 +24,16 @@ export default function Cart() {
       setLoading(false);
     }
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
   }, []);
 
   if (loading) {
@@ -43,12 +54,87 @@ export default function Cart() {
     return /^[6-9]\d{9}$/.test(p);
   }
 
-  function handleCheckout() {
+  async function handleCheckout() {
     if (!isValidPhone(phone)) {
       alert('Please enter a valid 10-digit phone number.');
       return;
     }
-    alert(`Checkout not wired to payment yet.\nPhone: ${phone}\nTotal: ₹${total}\n(Razorpay comes next.)`);
+
+    setPaying(true);
+
+    try {
+      const createRes = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total }),
+      });
+      const createData = await createRes.json();
+
+      if (!createRes.ok || !createData.order) {
+        alert('Could not start payment. Please try again.');
+        setPaying(false);
+        return;
+      }
+
+      const razorpayOrder = createData.order;
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: razorpayOrder.amount,
+        currency: 'INR',
+        name: 'Hungry Buds',
+        description: 'Campus Delivery Order',
+        order_id: razorpayOrder.id,
+        handler: async function (response) {
+          const verifyRes = await fetch('/api/verify-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              phone,
+              lineItems: lineItems.map((i) => ({
+                id: i.id,
+                name: i.name,
+                price: i.price,
+                qty: i.qty,
+              })),
+              subtotal,
+              handlingFee,
+              total,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+
+          if (verifyRes.ok && verifyData.success) {
+            localStorage.removeItem('hb_cart');
+            router.push('/order-confirmed');
+          } else {
+            alert('Payment verification failed. If money was deducted, it will be refunded automatically. Please contact the restaurant.');
+          }
+          setPaying(false);
+        },
+        modal: {
+          ondismiss: function () {
+            setPaying(false);
+          },
+        },
+        prefill: {
+          contact: phone,
+        },
+        theme: {
+          color: '#D9642B',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong starting the payment. Please try again.');
+      setPaying(false);
+    }
   }
 
   return (
@@ -107,12 +193,13 @@ export default function Cart() {
 
           <button
             onClick={handleCheckout}
+            disabled={paying}
             style={{
               width: '100%', marginTop: 20, padding: 14, background: '#D9642B', color: '#fff',
               border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 16, cursor: 'pointer',
             }}
           >
-            Pay ₹{total}
+            {paying ? 'Processing...' : `Pay ₹${total}`}
           </button>
         </>
       )}
