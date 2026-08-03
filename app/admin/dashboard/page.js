@@ -40,8 +40,17 @@ export default function AdminDashboard() {
       <p style={{ color: '#555', marginBottom: 24 }}>
         Logged in as {session?.user?.email}
       </p>
+      
+        href="/admin/menu"
+        style={{
+          display: 'inline-block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          borderRadius: 8, fontWeight: 700, textDecoration: 'none', marginBottom: 20,
+        }}
+      >
+        Manage Menu
+      </a>
       <p style={{ color: '#888', marginBottom: 24 }}>
-        Menu editing, order windows, and reports will go here next.
+        Order windows and reports will go here next.
       </p>
       <button
         onClick={handleLogout}
