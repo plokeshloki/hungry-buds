@@ -44,13 +44,22 @@ export default function AdminDashboard() {
         onClick={() => router.push('/admin/menu')}
         style={{
           display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
-          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20,
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 12, width: '100%',
         }}
       >
         Manage Menu
       </button>
+      <button
+        onClick={() => router.push('/admin/settings')}
+        style={{
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20, width: '100%',
+        }}
+      >
+        Order Windows & Settings
+      </button>
       <p style={{ color: '#888', marginBottom: 24 }}>
-        Order windows and reports will go here next.
+        Reports will go here next.
       </p>
       <button
         onClick={handleLogout}
