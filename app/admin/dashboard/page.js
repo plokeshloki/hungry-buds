@@ -62,14 +62,20 @@ export default function AdminDashboard() {
         onClick={() => router.push('/admin/lookup')}
         style={{
           display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
-          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20, width: '100%',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 12, width: '100%',
         }}
       >
         Order Lookup
       </button>
-      <p style={{ color: '#888', marginBottom: 24 }}>
-        Kitchen summary report will go here next.
-      </p>
+      <button
+        onClick={() => router.push('/admin/kitchen')}
+        style={{
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20, width: '100%',
+        }}
+      >
+        Kitchen Summary
+      </button>
       <button
         onClick={handleLogout}
         style={{
