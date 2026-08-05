@@ -100,6 +100,7 @@ export default function Cart() {
               razorpay_signature: response.razorpay_signature,
               phone,
               name,
+              orderWindowId: localStorage.getItem('hb_window_id') || null,
               lineItems: lineItems.map((i) => ({
                 id: i.id,
                 name: i.name,
