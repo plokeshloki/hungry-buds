@@ -9,6 +9,7 @@ export default function Cart() {
   const [cart, setCart] = useState({});
   const [menuItems, setMenuItems] = useState([]);
   const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
   const [handlingFee, setHandlingFee] = useState(5);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -55,6 +56,10 @@ export default function Cart() {
   }
 
   async function handleCheckout() {
+    if (!name.trim()) {
+      alert('Please enter your name.');
+      return;
+    }
     if (!isValidPhone(phone)) {
       alert('Please enter a valid 10-digit phone number.');
       return;
@@ -94,6 +99,7 @@ export default function Cart() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               phone,
+              name,
               lineItems: lineItems.map((i) => ({
                 id: i.id,
                 name: i.name,
@@ -122,6 +128,7 @@ export default function Cart() {
         },
         prefill: {
           contact: phone,
+          name: name,
         },
         theme: {
           color: '#D9642B',
@@ -175,6 +182,20 @@ export default function Cart() {
           </div>
 
           <div style={{ marginTop: 24 }}>
+            <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+              Your name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your full name"
+              style={{
+                width: '100%', padding: 12, borderRadius: 10, border: '1px solid #ccc',
+                fontSize: 16, boxSizing: 'border-box', marginBottom: 16,
+              }}
+            />
+
             <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>
               Your phone number (for pickup)
             </label>
