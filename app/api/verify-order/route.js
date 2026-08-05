@@ -15,6 +15,7 @@ export async function POST(request) {
       razorpay_payment_id,
       razorpay_signature,
       phone,
+      name,
       lineItems,
       subtotal,
       handlingFee,
@@ -44,10 +45,14 @@ export async function POST(request) {
     let customerId;
     if (existingCustomer) {
       customerId = existingCustomer.id;
+      await supabaseAdmin
+        .from('customers')
+        .update({ name })
+        .eq('id', customerId);
     } else {
       const { data: newCustomer, error: custError } = await supabaseAdmin
         .from('customers')
-        .insert({ phone })
+        .insert({ phone, name })
         .select()
         .single();
       if (custError) throw custError;
