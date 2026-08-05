@@ -1,0 +1,90 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../../lib/supabaseClient';
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.push('/admin');
+        return;
+      }
+      setSession(data.session);
+      setChecking(false);
+    }
+    checkSession();
+  }, [router]);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push('/admin');
+  }
+
+  if (checking) {
+    return (
+      <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif', padding: 24, textAlign: 'center' }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 480, margin: '60px auto', fontFamily: 'sans-serif', padding: 24 }}>
+      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Admin Dashboard</h1>
+      <p style={{ color: '#555', marginBottom: 24 }}>
+        Logged in as {session?.user?.email}
+      </p>
+      <button
+        onClick={() => router.push('/admin/menu')}
+        style={{
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 12, width: '100%',
+        }}
+      >
+        Manage Menu
+      </button>
+      <button
+        onClick={() => router.push('/admin/settings')}
+        style={{
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 12, width: '100%',
+        }}
+      >
+        Order Windows & Settings
+      </button>
+      <button
+        onClick={() => router.push('/admin/lookup')}
+        style={{
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 12, width: '100%',
+        }}
+      >
+        Order Lookup
+      </button>
+      <button
+        onClick={() => router.push('/admin/kitchen')}
+        style={{
+          display: 'block', padding: '10px 16px', background: '#2e7d32', color: '#fff',
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20, width: '100%',
+        }}
+      >
+        Kitchen Summary
+      </button>
+      <button
+        onClick={handleLogout}
+        style={{
+          padding: 12, background: '#D9642B', color: '#fff',
+          border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer',
+        }}
+      >
+        Log out
+      </button>
+    </div>
+  );
+}
