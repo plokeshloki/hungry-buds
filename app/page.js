@@ -49,10 +49,6 @@ export default function Home() {
     localStorage.setItem('hb_cart', JSON.stringify(cart));
   }, [cart]);
 
-  if (loading) {
-    return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading menu...</div>;
-  }
-
   const status = getOrderStatus(new Date(), windows, closedMessage);
 
   useEffect(() => {
@@ -60,6 +56,10 @@ export default function Home() {
       localStorage.setItem('hb_window_id', status.window.id);
     }
   }, [status.isOpen, status.window]);
+
+  if (loading) {
+    return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading menu...</div>;
+  }
 
   const grouped = menuItems.reduce((acc, item) => {
     acc[item.category] = acc[item.category] || [];
