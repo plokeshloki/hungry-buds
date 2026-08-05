@@ -9,13 +9,15 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -28,6 +30,35 @@ export default function AdminLogin() {
     }
 
     router.push('/admin/dashboard');
+  }
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setError('Enter your email above first, then tap "Forgot password?"');
+      return;
+    }
+    setError('');
+    setResetLoading(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://hungry-buds.vercel.app/admin/reset-password',
+    });
+    setResetLoading(false);
+    if (resetError) {
+      setError('Failed to send reset email: ' + resetError.message);
+    } else {
+      setResetSent(true);
+    }
+  }
+
+  if (resetSent) {
+    return (
+      <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif', padding: 24, textAlign: 'center' }}>
+        <h2>Check your email</h2>
+        <p style={{ color: '#555' }}>
+          We sent a password reset link to <strong>{email}</strong>. Click it to set a new password.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -62,6 +93,16 @@ export default function AdminLogin() {
           {loading ? 'Checking...' : 'Log in'}
         </button>
       </form>
+      <button
+        onClick={handleForgotPassword}
+        disabled={resetLoading}
+        style={{
+          background: 'none', border: 'none', color: '#D9642B', fontSize: 13,
+          marginTop: 14, cursor: 'pointer', textDecoration: 'underline',
+        }}
+      >
+        {resetLoading ? 'Sending...' : 'Forgot password?'}
+      </button>
     </div>
   );
 }
