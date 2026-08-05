@@ -55,6 +55,12 @@ export default function Home() {
 
   const status = getOrderStatus(new Date(), windows, closedMessage);
 
+  useEffect(() => {
+    if (status.isOpen && status.window) {
+      localStorage.setItem('hb_window_id', status.window.id);
+    }
+  }, [status.isOpen, status.window]);
+
   const grouped = menuItems.reduce((acc, item) => {
     acc[item.category] = acc[item.category] || [];
     acc[item.category].push(item);
