@@ -16,6 +16,7 @@ export async function POST(request) {
       razorpay_signature,
       phone,
       name,
+      orderWindowId,
       lineItems,
       subtotal,
       handlingFee,
@@ -63,6 +64,7 @@ export async function POST(request) {
       .from('orders')
       .insert({
         customer_id: customerId,
+        order_window_id: orderWindowId,
         status: 'paid',
         subtotal,
         handling_fee: handlingFee,
