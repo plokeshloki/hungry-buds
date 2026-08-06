@@ -101,7 +101,7 @@ export default function Home() {
 
       {Object.entries(grouped).map(([category, items]) => (
         <div key={category} style={{ marginBottom: 28 }}>
-          <h2 style={{ fontSize: 19, marginBottom: 12 }}>{category}</h2>
+          <h2 style={{ fontSize: 19, marginBottom: 12, fontWeight: 800, color: '#2B2118' }}>{category}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {items.map((item) => {
               const qty = cart[item.id] || 0;
@@ -118,7 +118,7 @@ export default function Home() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ display: 'inline-block', width: 10, height: 10, border: '2px solid', borderColor: item.veg ? '#2e7d32' : '#c62828' }} />
-                      <strong>{item.name}</strong>
+                      <strong style={{ color: '#2B2118', fontSize: 15 }}>{item.name}</strong>
                     </div>
                     <div style={{ fontSize: 13, color: '#777', margin: '2px 0 6px' }}>{item.description}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
