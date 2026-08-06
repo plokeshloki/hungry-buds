@@ -139,6 +139,7 @@ export default function Cart() {
             hide: [
               { method: 'paylater' },
               { method: 'wallet' },
+              { method: 'emi' },
             ],
           },
         },
