@@ -134,6 +134,14 @@ export default function Cart() {
         theme: {
           color: '#D9642B',
         },
+        config: {
+          display: {
+            hide: [
+              { method: 'paylater' },
+              { method: 'wallet' },
+            ],
+          },
+        },
       };
 
       const rzp = new window.Razorpay(options);
