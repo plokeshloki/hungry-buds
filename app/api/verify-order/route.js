@@ -36,29 +36,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    let { data: existingCustomer } = await supabaseAdmin
+    const { data: customer, error: custError } = await supabaseAdmin
       .from('customers')
+      .upsert({ phone, name }, { onConflict: 'phone' })
       .select('id')
-      .eq('phone', phone)
-      .limit(1)
       .single();
 
-    let customerId;
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
-      await supabaseAdmin
-        .from('customers')
-        .update({ name })
-        .eq('id', customerId);
-    } else {
-      const { data: newCustomer, error: custError } = await supabaseAdmin
-        .from('customers')
-        .insert({ phone, name })
-        .select()
-        .single();
-      if (custError) throw custError;
-      customerId = newCustomer.id;
-    }
+    if (custError) throw custError;
+    const customerId = customer.id;
 
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
