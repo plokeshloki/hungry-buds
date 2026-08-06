@@ -13,6 +13,7 @@ export default function Cart() {
   const [handlingFee, setHandlingFee] = useState(5);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -91,6 +92,7 @@ export default function Cart() {
         description: 'Campus Delivery Order',
         order_id: razorpayOrder.id,
         handler: async function (response) {
+          setConfirming(true);
           const verifyRes = await fetch('/api/verify-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -118,6 +120,7 @@ export default function Cart() {
             localStorage.removeItem('hb_cart');
             router.push('/order-confirmed');
           } else {
+            setConfirming(false);
             alert('Payment verification failed. If money was deducted, it will be refunded automatically. Please contact the restaurant.');
           }
           setPaying(false);
@@ -156,6 +159,27 @@ export default function Cart() {
 
   return (
     <div style={{ maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 16, background: '#FFF8EE', minHeight: '100vh' }}>
+      {confirming && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(255, 248, 238, 0.97)', zIndex: 999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            border: '4px solid #f0d9c0', borderTopColor: '#D9642B',
+            animation: 'hb-spin 0.8s linear infinite',
+          }} />
+          <p style={{ marginTop: 20, fontSize: 16, fontWeight: 600, color: '#333' }}>
+            Payment received — confirming your order...
+          </p>
+          <p style={{ marginTop: 4, fontSize: 13, color: '#888' }}>
+            This usually takes just a few seconds. Please don't close this page.
+          </p>
+          <style>{`@keyframes hb-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
       <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', fontSize: 14, marginBottom: 12, cursor: 'pointer' }}>
         ← Back to menu
       </button>
