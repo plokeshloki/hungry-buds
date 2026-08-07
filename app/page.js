@@ -27,6 +27,7 @@ export default function Home() {
   const [closedMessage, setClosedMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState({});
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -61,7 +62,16 @@ export default function Home() {
     return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading menu...</div>;
   }
 
-  const grouped = menuItems.reduce((acc, item) => {
+  const searchLower = search.trim().toLowerCase();
+  const filteredItems = searchLower
+    ? menuItems.filter((item) =>
+        (item.name || '').toLowerCase().includes(searchLower) ||
+        (item.description || '').toLowerCase().includes(searchLower) ||
+        (item.category || '').toLowerCase().includes(searchLower)
+      )
+    : menuItems;
+
+  const grouped = filteredItems.reduce((acc, item) => {
     acc[item.category] = acc[item.category] || [];
     acc[item.category].push(item);
     return acc;
@@ -97,7 +107,30 @@ export default function Home() {
         {status.isOpen ? `Ordering open — closes in ${status.closesInMinutes} minutes` : status.message}
       </div>
 
-      {Object.keys(grouped).length === 0 && <p>No menu items found yet.</p>}
+      <div style={{ marginBottom: 20 }}>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search for a dish..."
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: '12px 14px',
+            borderRadius: 12,
+            border: '1.5px solid #eee',
+            background: '#fff',
+            fontSize: 15,
+            color: '#2B2118',
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      {Object.keys(grouped).length === 0 && searchLower && (
+        <p style={{ color: '#777' }}>No dishes match "{search}".</p>
+      )}
+      {Object.keys(grouped).length === 0 && !searchLower && <p>No menu items found yet.</p>}
 
       {Object.entries(grouped).map(([category, items]) => (
         <div key={category} style={{ marginBottom: 28 }}>
