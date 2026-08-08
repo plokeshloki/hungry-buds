@@ -20,6 +20,27 @@ function getOrderStatus(now, windows, closedMessage) {
   return { isOpen: false, message: closedMessage };
 }
 
+function isItemTimeAvailable(item, now) {
+  // If no custom time range is set, item is always available (per your existing logic)
+  if (!item.available_start_time || !item.available_end_time) return true;
+
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const startMin = toMin(item.available_start_time);
+  const endMin = toMin(item.available_end_time);
+
+  if (startMin <= endMin) {
+    // normal range, e.g. 18:00 to 20:00
+    return nowMin >= startMin && nowMin < endMin;
+  } else {
+    // range crosses midnight, e.g. 22:00 to 02:00
+    return nowMin >= startMin || nowMin < endMin;
+  }
+}
+
 export default function Home() {
   const router = useRouter();
   const [menuItems, setMenuItems] = useState([]);
@@ -28,6 +49,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState({});
   const [search, setSearch] = useState('');
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -44,13 +66,17 @@ export default function Home() {
       setLoading(false);
     }
     loadData();
+
+    // refresh the clock every minute so time-restricted items appear/disappear automatically
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     localStorage.setItem('hb_cart', JSON.stringify(cart));
   }, [cart]);
 
-  const status = getOrderStatus(new Date(), windows, closedMessage);
+  const status = getOrderStatus(now, windows, closedMessage);
 
   useEffect(() => {
     if (status.isOpen && status.window) {
@@ -62,14 +88,16 @@ export default function Home() {
     return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading menu...</div>;
   }
 
+  const timeAvailableItems = menuItems.filter((item) => isItemTimeAvailable(item, now));
+
   const searchLower = search.trim().toLowerCase();
   const filteredItems = searchLower
-    ? menuItems.filter((item) =>
+    ? timeAvailableItems.filter((item) =>
         (item.name || '').toLowerCase().includes(searchLower) ||
         (item.description || '').toLowerCase().includes(searchLower) ||
         (item.category || '').toLowerCase().includes(searchLower)
       )
-    : menuItems;
+    : timeAvailableItems;
 
   const grouped = filteredItems.reduce((acc, item) => {
     acc[item.category] = acc[item.category] || [];
