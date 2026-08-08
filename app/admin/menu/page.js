@@ -57,6 +57,8 @@ export default function MenuManager() {
         in_stock: item.in_stock,
         available_morning: item.available_morning,
         available_evening: item.available_evening,
+        available_start_time: item.available_start_time || null,
+        available_end_time: item.available_end_time || null,
       })
       .eq('id', item.id);
     setSavingId(null);
@@ -93,6 +95,8 @@ export default function MenuManager() {
         in_stock: true,
         available_morning: true,
         available_evening: true,
+        available_start_time: null,
+        available_end_time: null,
       })
       .select()
       .single();
@@ -220,23 +224,30 @@ export default function MenuManager() {
             </label>
           </div>
 
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-            <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={item.available_morning !== false}
-                onChange={(e) => updateField(item.id, 'available_morning', e.target.checked)}
-              />
-              Available in Morning
+          <div style={{ border: '1px dashed #D9642B', borderRadius: 8, padding: 10, marginBottom: 14 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6, color: '#D9642B' }}>
+              Custom Time Restriction (optional — leave both blank to show all the time)
             </label>
-            <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={item.available_evening !== false}
-                onChange={(e) => updateField(item.id, 'available_evening', e.target.checked)}
-              />
-              Available in Evening
-            </label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Available From</label>
+                <input
+                  type="time"
+                  value={item.available_start_time || ''}
+                  onChange={(e) => updateField(item.id, 'available_start_time', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Available Until</label>
+                <input
+                  type="time"
+                  value={item.available_end_time || ''}
+                  onChange={(e) => updateField(item.id, 'available_end_time', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
