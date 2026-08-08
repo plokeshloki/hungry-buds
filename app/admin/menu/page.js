@@ -55,6 +55,8 @@ export default function MenuManager() {
         photo_url: item.photo_url,
         description: item.description,
         in_stock: item.in_stock,
+        available_morning: item.available_morning,
+        available_evening: item.available_evening,
       })
       .eq('id', item.id);
     setSavingId(null);
@@ -89,6 +91,8 @@ export default function MenuManager() {
         photo_url: '',
         description: '',
         in_stock: true,
+        available_morning: true,
+        available_evening: true,
       })
       .select()
       .single();
@@ -197,7 +201,7 @@ export default function MenuManager() {
             style={{ ...inputStyle, minHeight: 60 }}
           />
 
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
             <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
                 type="checkbox"
@@ -213,6 +217,25 @@ export default function MenuManager() {
                 onChange={(e) => updateField(item.id, 'in_stock', e.target.checked)}
               />
               In stock
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={item.available_morning !== false}
+                onChange={(e) => updateField(item.id, 'available_morning', e.target.checked)}
+              />
+              Available in Morning
+            </label>
+            <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={item.available_evening !== false}
+                onChange={(e) => updateField(item.id, 'available_evening', e.target.checked)}
+              />
+              Available in Evening
             </label>
           </div>
 
