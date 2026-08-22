@@ -12,6 +12,11 @@ export default function MenuManager() {
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
 
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkStartTime, setBulkStartTime] = useState('');
+  const [bulkEndTime, setBulkEndTime] = useState('');
+  const [bulkWorking, setBulkWorking] = useState(false);
+
   useEffect(() => {
     async function init() {
       const { data } = await supabase.auth.getSession();
@@ -108,6 +113,53 @@ export default function MenuManager() {
     }
   }
 
+  const categories = [...new Set(items.map((i) => i.category).filter(Boolean))].sort();
+
+  async function bulkSetStock(inStock) {
+    if (!bulkCategory) {
+      setMessage('Please choose a category first.');
+      return;
+    }
+    setBulkWorking(true);
+    setMessage('');
+    const { error } = await supabase
+      .from('menu_items')
+      .update({ in_stock: inStock })
+      .eq('category', bulkCategory);
+    setBulkWorking(false);
+    if (error) {
+      setMessage('Failed to update category: ' + error.message);
+    } else {
+      setMessage(`${inStock ? 'Shown' : 'Hidden'} all items in "${bulkCategory}"`);
+      await loadItems();
+      setTimeout(() => setMessage(''), 2500);
+    }
+  }
+
+  async function bulkSetTime() {
+    if (!bulkCategory) {
+      setMessage('Please choose a category first.');
+      return;
+    }
+    setBulkWorking(true);
+    setMessage('');
+    const { error } = await supabase
+      .from('menu_items')
+      .update({
+        available_start_time: bulkStartTime || null,
+        available_end_time: bulkEndTime || null,
+      })
+      .eq('category', bulkCategory);
+    setBulkWorking(false);
+    if (error) {
+      setMessage('Failed to update category time: ' + error.message);
+    } else {
+      setMessage(`Applied time window to all items in "${bulkCategory}"`);
+      await loadItems();
+      setTimeout(() => setMessage(''), 2500);
+    }
+  }
+
   const filteredItems = search.trim()
     ? items.filter((item) => {
         const q = search.trim().toLowerCase();
@@ -149,6 +201,79 @@ export default function MenuManager() {
       >
         + Add New Item
       </button>
+
+      <div style={{ border: '1px dashed #D9642B', borderRadius: 8, padding: 12, marginBottom: 20 }}>
+        <label style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 8, color: '#D9642B' }}>
+          Category Bulk Actions
+        </label>
+
+        <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Choose category</label>
+        <select
+          value={bulkCategory}
+          onChange={(e) => setBulkCategory(e.target.value)}
+          style={{ ...inputStyle, marginBottom: 10 }}
+        >
+          <option value="">-- Select a category --</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <button
+            onClick={() => bulkSetStock(false)}
+            disabled={bulkWorking}
+            style={{
+              flex: 1, padding: 10, background: '#a33c26', color: '#fff',
+              border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Hide All in Category
+          </button>
+          <button
+            onClick={() => bulkSetStock(true)}
+            disabled={bulkWorking}
+            style={{
+              flex: 1, padding: 10, background: '#2e7d32', color: '#fff',
+              border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Show All in Category
+          </button>
+        </div>
+
+        <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+          Shared Available From / Until for this category (optional — leave both blank to show all the time)
+        </label>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+          <div style={{ flex: 1 }}>
+            <input
+              type="time"
+              value={bulkStartTime}
+              onChange={(e) => setBulkStartTime(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <input
+              type="time"
+              value={bulkEndTime}
+              onChange={(e) => setBulkEndTime(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+        <button
+          onClick={bulkSetTime}
+          disabled={bulkWorking}
+          style={{
+            width: '100%', padding: 10, background: '#D9642B', color: '#fff',
+            border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          {bulkWorking ? 'Applying...' : 'Apply Time to Whole Category'}
+        </button>
+      </div>
 
       <input
         type="text"
