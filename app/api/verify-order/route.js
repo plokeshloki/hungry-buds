@@ -48,6 +48,7 @@ export async function POST(request) {
       razorpay_signature,
       phone,
       name,
+      college,
       lineItems,
       subtotal,
       handlingFee,
@@ -69,7 +70,7 @@ export async function POST(request) {
 
     const { data: customer, error: custError } = await supabaseAdmin
       .from('customers')
-      .upsert({ phone, name }, { onConflict: 'phone' })
+      .upsert({ phone, name, college_name: college }, { onConflict: 'phone' })
       .select('id')
       .single();
     if (custError) throw custError;
