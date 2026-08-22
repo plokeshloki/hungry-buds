@@ -10,6 +10,7 @@ export default function Cart() {
   const [menuItems, setMenuItems] = useState([]);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [college, setCollege] = useState('');
   const [handlingFee, setHandlingFee] = useState(5);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -61,6 +62,10 @@ export default function Cart() {
       alert('Please enter your name.');
       return;
     }
+    if (!college.trim()) {
+      alert('Please enter your college name.');
+      return;
+    }
     if (!isValidPhone(phone)) {
       alert('Please enter a valid 10-digit phone number.');
       return;
@@ -102,6 +107,7 @@ export default function Cart() {
               razorpay_signature: response.razorpay_signature,
               phone,
               name,
+              college,
               orderWindowId: localStorage.getItem('hb_window_id') || null,
               lineItems: lineItems.map((i) => ({
                 id: i.id,
@@ -224,6 +230,20 @@ export default function Cart() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your full name"
+              style={{
+                width: '100%', padding: 12, borderRadius: 10, border: '1px solid #ccc',
+                fontSize: 16, boxSizing: 'border-box', marginBottom: 16,
+              }}
+            />
+
+            <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+              Your college name
+            </label>
+            <input
+              type="text"
+              value={college}
+              onChange={(e) => setCollege(e.target.value)}
+              placeholder="e.g. VIT-AP"
               style={{
                 width: '100%', padding: 12, borderRadius: 10, border: '1px solid #ccc',
                 fontSize: 16, boxSizing: 'border-box', marginBottom: 16,
