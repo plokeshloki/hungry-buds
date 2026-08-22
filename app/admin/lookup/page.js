@@ -42,7 +42,7 @@ export default function OrderLookup() {
       orderRows.map(async (order) => {
         const { data: customer } = await supabase
           .from('customers')
-          .select('name, phone')
+          .select('name, phone, college_name')
           .eq('id', order.customer_id)
           .single();
         const { data: items } = await supabase
@@ -124,7 +124,7 @@ export default function OrderLookup() {
             </span>
           </div>
           <div style={{ color: '#666', fontSize: 13, marginBottom: 8 }}>
-            {order.customer?.phone} • {new Date(order.created_at).toLocaleString('en-IN', {
+            {order.customer?.phone} • {order.customer?.college_name || 'No college'} • {new Date(order.created_at).toLocaleString('en-IN', {
               day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
             })}
           </div>
