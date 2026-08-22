@@ -10,6 +10,7 @@ export default function MenuManager() {
   const [loadingItems, setLoadingItems] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [message, setMessage] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     async function init() {
@@ -107,6 +108,17 @@ export default function MenuManager() {
     }
   }
 
+  const filteredItems = search.trim()
+    ? items.filter((item) => {
+        const q = search.trim().toLowerCase();
+        return (
+          (item.name || '').toLowerCase().includes(q) ||
+          (item.category || '').toLowerCase().includes(q) ||
+          (item.description || '').toLowerCase().includes(q)
+        );
+      })
+    : items;
+
   if (checking || loadingItems) {
     return (
       <div style={{ maxWidth: 600, margin: '60px auto', fontFamily: 'sans-serif', padding: 24, textAlign: 'center' }}>
@@ -132,13 +144,30 @@ export default function MenuManager() {
         onClick={addNewItem}
         style={{
           padding: 10, background: '#2e7d32', color: '#fff',
-          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 20,
+          border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginBottom: 16,
         }}
       >
         + Add New Item
       </button>
 
-      {items.map((item) => (
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search items by name, category, or description..."
+        style={{
+          width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ccc',
+          fontSize: 14, boxSizing: 'border-box', marginBottom: 20,
+        }}
+      />
+
+      {search.trim() && (
+        <p style={{ color: '#888', marginBottom: 12, fontSize: 13 }}>
+          Showing {filteredItems.length} of {items.length} item(s)
+        </p>
+      )}
+
+      {filteredItems.map((item) => (
         <div
           key={item.id}
           style={{
