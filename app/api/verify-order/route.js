@@ -68,40 +68,23 @@ export async function POST(request) {
     // Determine the correct window using the real server time, not the phone's saved value
     const orderWindowId = await getCurrentWindowId();
 
-    const { data: customer, error: custError } = await supabaseAdmin
-      .from('customers')
-      .upsert({ phone, name, college_name: college }, { onConflict: 'phone' })
-      .select('id')
-      .single();
-    if (custError) throw custError;
-    const customerId = customer.id;
-    const { data: newOrder, error: orderError } = await supabaseAdmin
-      .from('orders')
-      .insert({
-        customer_id: customerId,
-        order_window_id: orderWindowId,
-        status: 'paid',
-        subtotal,
-        handling_fee: handlingFee,
-        total_amount: total,
-        razorpay_order_id,
-        razorpay_payment_id,
-      })
-      .select()
-      .single();
-    if (orderError) throw orderError;
-    const orderItemsToInsert = lineItems.map((item) => ({
-      order_id: newOrder.id,
-      menu_item_id: item.id,
-      item_name: item.name,
-      unit_price: item.price,
-      quantity: item.qty,
-    }));
-    const { error: itemsError } = await supabaseAdmin
-      .from('order_items')
-      .insert(orderItemsToInsert);
-    if (itemsError) throw itemsError;
-    return NextResponse.json({ success: true, orderId: newOrder.id });
+    // Single database round trip: saves customer, order, and order items all at once
+    const { data: newOrderId, error: rpcError } = await supabaseAdmin.rpc('complete_order', {
+      p_phone: phone,
+      p_name: name,
+      p_college: college,
+      p_order_window_id: orderWindowId,
+      p_subtotal: subtotal,
+      p_handling_fee: handlingFee,
+      p_total: total,
+      p_razorpay_order_id: razorpay_order_id,
+      p_razorpay_payment_id: razorpay_payment_id,
+      p_line_items: lineItems,
+    });
+
+    if (rpcError) throw rpcError;
+
+    return NextResponse.json({ success: true, orderId: newOrderId });
   } catch (err) {
     console.error('Verify order error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
