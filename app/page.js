@@ -41,6 +41,12 @@ function isItemTimeAvailable(item, now) {
   }
 }
 
+// Matches loosely: ignores capital/lowercase letters and extra spaces,
+// so "Fast Food", "fast food ", "FAST FOOD" are all treated as the same category.
+function normalizeCategory(text) {
+  return (text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 export default function Home() {
   const router = useRouter();
   const [menuItems, setMenuItems] = useState([]);
@@ -50,6 +56,8 @@ export default function Home() {
   const [cart, setCart] = useState({});
   const [search, setSearch] = useState('');
   const [now, setNow] = useState(new Date());
+  const [categoryButtons, setCategoryButtons] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(null);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -59,10 +67,16 @@ export default function Home() {
       const { data: items } = await supabase.from('menu_items').select('*').eq('in_stock', true);
       const { data: windowRows } = await supabase.from('order_windows').select('*').eq('is_active', true);
       const { data: settings } = await supabase.from('app_settings').select('closed_message').limit(1).single();
+      const { data: catButtons } = await supabase
+        .from('category_buttons')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
 
       setMenuItems(items || []);
       setWindows(windowRows || []);
       setClosedMessage(settings?.closed_message || 'Ordering is currently closed.');
+      setCategoryButtons(catButtons || []);
       setLoading(false);
     }
     loadData();
@@ -90,14 +104,18 @@ export default function Home() {
 
   const timeAvailableItems = menuItems.filter((item) => isItemTimeAvailable(item, now));
 
+  const categoryFilteredItems = activeCategory
+    ? timeAvailableItems.filter((item) => normalizeCategory(item.category) === normalizeCategory(activeCategory))
+    : timeAvailableItems;
+
   const searchLower = search.trim().toLowerCase();
   const filteredItems = searchLower
-    ? timeAvailableItems.filter((item) =>
+    ? categoryFilteredItems.filter((item) =>
         (item.name || '').toLowerCase().includes(searchLower) ||
         (item.description || '').toLowerCase().includes(searchLower) ||
         (item.category || '').toLowerCase().includes(searchLower)
       )
-    : timeAvailableItems;
+    : categoryFilteredItems;
 
   const grouped = filteredItems.reduce((acc, item) => {
     acc[item.category] = acc[item.category] || [];
@@ -135,7 +153,7 @@ export default function Home() {
         {status.isOpen ? `Ordering open — closes in ${status.closesInMinutes} minutes` : status.message}
       </div>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 14 }}>
         <input
           type="text"
           value={search}
@@ -154,6 +172,44 @@ export default function Home() {
           }}
         />
       </div>
+
+      {categoryButtons.length > 0 && (
+        <div style={{
+          display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 20,
+          paddingBottom: 4, WebkitOverflowScrolling: 'touch',
+        }}>
+          <button
+            onClick={() => setActiveCategory(null)}
+            style={{
+              flexShrink: 0, padding: '8px 16px', borderRadius: 20, fontWeight: 700, fontSize: 13,
+              border: activeCategory === null ? 'none' : '1.5px solid #ddd',
+              background: activeCategory === null ? '#D9642B' : '#fff',
+              color: activeCategory === null ? '#fff' : '#2B2118',
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            All
+          </button>
+          {categoryButtons.map((btn) => {
+            const isActive = activeCategory && normalizeCategory(activeCategory) === normalizeCategory(btn.category_value);
+            return (
+              <button
+                key={btn.id}
+                onClick={() => setActiveCategory(isActive ? null : btn.category_value)}
+                style={{
+                  flexShrink: 0, padding: '8px 16px', borderRadius: 20, fontWeight: 700, fontSize: 13,
+                  border: isActive ? 'none' : '1.5px solid #ddd',
+                  background: isActive ? '#D9642B' : '#fff',
+                  color: isActive ? '#fff' : '#2B2118',
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {btn.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {Object.keys(grouped).length === 0 && searchLower && (
         <p style={{ color: '#777' }}>No dishes match "{search}".</p>
