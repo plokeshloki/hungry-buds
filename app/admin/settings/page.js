@@ -83,6 +83,8 @@ export default function SettingsManager() {
       .update({
         closed_message: settings.closed_message,
         handling_fee: settings.handling_fee,
+        delivery_message: settings.delivery_message,
+        delivery_time: settings.delivery_time,
       })
       .eq('id', settings.id);
     setSavingSettings(false);
@@ -209,6 +211,22 @@ export default function SettingsManager() {
             value={settings.handling_fee ?? ''}
             onChange={(e) => updateSettingsField('handling_fee', Number(e.target.value))}
             style={inputStyle}
+          />
+
+          <label style={labelStyle}>Delivery message (shown on order confirmation page)</label>
+          <textarea
+            value={settings.delivery_message || ''}
+            onChange={(e) => updateSettingsField('delivery_message', e.target.value)}
+            style={{ ...inputStyle, minHeight: 60 }}
+          />
+
+          <label style={labelStyle}>Delivery time (shown on order confirmation page, e.g. "8:00 PM")</label>
+          <input
+            type="text"
+            value={settings.delivery_time || ''}
+            onChange={(e) => updateSettingsField('delivery_time', e.target.value)}
+            style={inputStyle}
+            placeholder="e.g. 8:00 PM"
           />
 
           <button
