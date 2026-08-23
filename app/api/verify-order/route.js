@@ -65,16 +65,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // Determine the correct window using the real server time, not the phone's saved value
-    const orderWindowId = await getCurrentWindowId();
+    // These two don't depend on each other, so run them at the same time instead of one after another
+    const [orderWindowId, customerResult] = await Promise.all([
+      getCurrentWindowId(),
+      supabaseAdmin
+        .from('customers')
+        .upsert({ phone, name, college_name: college }, { onConflict: 'phone' })
+        .select('id')
+        .single(),
+    ]);
 
-    const { data: customer, error: custError } = await supabaseAdmin
-      .from('customers')
-      .upsert({ phone, name, college_name: college }, { onConflict: 'phone' })
-      .select('id')
-      .single();
-    if (custError) throw custError;
-    const customerId = customer.id;
+    if (customerResult.error) throw customerResult.error;
+    const customerId = customerResult.data.id;
+
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
@@ -90,6 +93,7 @@ export async function POST(request) {
       .select()
       .single();
     if (orderError) throw orderError;
+
     const orderItemsToInsert = lineItems.map((item) => ({
       order_id: newOrder.id,
       menu_item_id: item.id,
@@ -101,6 +105,7 @@ export async function POST(request) {
       .from('order_items')
       .insert(orderItemsToInsert);
     if (itemsError) throw itemsError;
+
     return NextResponse.json({ success: true, orderId: newOrder.id });
   } catch (err) {
     console.error('Verify order error:', err);
