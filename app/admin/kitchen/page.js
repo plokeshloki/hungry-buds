@@ -12,6 +12,10 @@ export default function KitchenSummary() {
   const [orderCount, setOrderCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const [mode, setMode] = useState('window'); // 'window' or 'custom'
+  const [customFrom, setCustomFrom] = useState('17:00');
+  const [customTo, setCustomTo] = useState('18:45');
+
   useEffect(() => {
     async function init() {
       const { data } = await supabase.auth.getSession();
@@ -33,12 +37,12 @@ export default function KitchenSummary() {
   }, [router]);
 
   useEffect(() => {
-    if (selectedWindow) {
-      loadSummary(selectedWindow);
+    if (mode === 'window' && selectedWindow) {
+      loadSummaryByWindow(selectedWindow);
     }
-  }, [selectedWindow]);
+  }, [selectedWindow, mode]);
 
-  async function loadSummary(windowId) {
+  async function loadSummaryByWindow(windowId) {
     setLoading(true);
 
     const todayStart = new Date();
@@ -58,6 +62,46 @@ export default function KitchenSummary() {
       return;
     }
 
+    await loadItemsForOrders(orders);
+  }
+
+  async function loadSummaryByCustomRange() {
+    setLoading(true);
+
+    const now = new Date();
+    const [fromH, fromM] = customFrom.split(':').map(Number);
+    const [toH, toM] = customTo.split(':').map(Number);
+
+    const fromDate = new Date(now);
+    fromDate.setHours(fromH, fromM, 0, 0);
+
+    const toDate = new Date(now);
+    toDate.setHours(toH, toM, 0, 0);
+
+    if (toDate <= fromDate) {
+      alert('"To" time must be after "From" time.');
+      setLoading(false);
+      return;
+    }
+
+    const { data: orders, error: orderError } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('status', 'paid')
+      .gte('created_at', fromDate.toISOString())
+      .lt('created_at', toDate.toISOString());
+
+    if (orderError || !orders) {
+      setSummary([]);
+      setOrderCount(0);
+      setLoading(false);
+      return;
+    }
+
+    await loadItemsForOrders(orders);
+  }
+
+  async function loadItemsForOrders(orders) {
     setOrderCount(orders.length);
 
     if (orders.length === 0) {
@@ -101,32 +145,96 @@ export default function KitchenSummary() {
         Total quantity to cook for today's paid orders, per item.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {windows.map((w) => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={() => setMode('window')}
+          style={{
+            flex: 1, padding: 10, borderRadius: 8, border: 'none', cursor: 'pointer',
+            fontWeight: 700, fontSize: 14,
+            background: mode === 'window' ? '#2B2118' : '#eee',
+            color: mode === 'window' ? '#fff' : '#333',
+          }}
+        >
+          By Window
+        </button>
+        <button
+          onClick={() => setMode('custom')}
+          style={{
+            flex: 1, padding: 10, borderRadius: 8, border: 'none', cursor: 'pointer',
+            fontWeight: 700, fontSize: 14,
+            background: mode === 'custom' ? '#2B2118' : '#eee',
+            color: mode === 'custom' ? '#fff' : '#333',
+          }}
+        >
+          Custom Time Range
+        </button>
+      </div>
+
+      {mode === 'window' && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {windows.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => setSelectedWindow(w.id)}
+              style={{
+                flex: 1, padding: 10, borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontWeight: 700, fontSize: 14,
+                background: selectedWindow === w.id ? '#D9642B' : '#eee',
+                color: selectedWindow === w.id ? '#fff' : '#333',
+              }}
+            >
+              {w.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {mode === 'custom' && (
+        <div style={{ border: '1px dashed #D9642B', borderRadius: 8, padding: 12, marginBottom: 20 }}>
+          <label style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 8, color: '#D9642B' }}>
+            Pick a time range for today
+          </label>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>From</label>
+              <input
+                type="time"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc', boxSizing: 'border-box', fontSize: 14 }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>To</label>
+              <input
+                type="time"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc', boxSizing: 'border-box', fontSize: 14 }}
+              />
+            </div>
+          </div>
           <button
-            key={w.id}
-            onClick={() => setSelectedWindow(w.id)}
+            onClick={loadSummaryByCustomRange}
             style={{
-              flex: 1, padding: 10, borderRadius: 8, border: 'none', cursor: 'pointer',
-              fontWeight: 700, fontSize: 14,
-              background: selectedWindow === w.id ? '#D9642B' : '#eee',
-              color: selectedWindow === w.id ? '#fff' : '#333',
+              width: '100%', padding: 10, background: '#D9642B', color: '#fff',
+              border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
             }}
           >
-            {w.label}
+            Show Orders in This Range
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
       {loading && <p>Loading summary...</p>}
 
       {!loading && (
         <>
           <p style={{ color: '#666', marginBottom: 12, fontSize: 13 }}>
-            {orderCount} paid order(s) today for this window
+            {orderCount} paid order(s) today for this {mode === 'window' ? 'window' : 'time range'}
           </p>
 
-          {summary.length === 0 && <p style={{ color: '#888' }}>No paid orders yet for this window today.</p>}
+          {summary.length === 0 && <p style={{ color: '#888' }}>No paid orders yet for this {mode === 'window' ? 'window' : 'time range'} today.</p>}
 
           {summary.map((row) => (
             <div
