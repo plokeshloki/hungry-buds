@@ -232,7 +232,7 @@ export default function Home() {
                       <strong style={{ color: '#2B2118', fontSize: 13 }}>{item.name}</strong>
                     </div>
                     <div style={{ fontSize: 11, color: '#777', margin: '2px 0 4px' }}>{item.description}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 12 }}>
                       <span style={{ fontWeight: 700, fontSize: 12 }}>₹{item.price}</span>
                       {status.isOpen ? (
                         qty === 0 ? (
