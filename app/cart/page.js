@@ -4,6 +4,22 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
+function getOrderStatus(now, windows, closedMessage) {
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  for (const w of windows) {
+    const openMin = toMin(w.order_open);
+    const closeMin = toMin(w.order_close);
+    if (nowMin >= openMin && nowMin < closeMin) {
+      return { isOpen: true, window: w, closesInMinutes: closeMin - nowMin };
+    }
+  }
+  return { isOpen: false, message: closedMessage };
+}
+
 export default function Cart() {
   const router = useRouter();
   const [cart, setCart] = useState({});
@@ -15,18 +31,28 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [windows, setWindows] = useState([]);
+  const [closedMessage, setClosedMessage] = useState('');
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
     setCart(savedCart);
     async function loadData() {
       const { data: items } = await supabase.from('menu_items').select('*');
-      const { data: settings } = await supabase.from('app_settings').select('handling_fee').limit(1).single();
+      const { data: settings } = await supabase.from('app_settings').select('handling_fee, closed_message').limit(1).single();
+      const { data: windowRows } = await supabase.from('order_windows').select('*').eq('is_active', true);
       setMenuItems(items || []);
       setHandlingFee(settings?.handling_fee ?? 5);
+      setClosedMessage(settings?.closed_message || 'Ordering is currently closed.');
+      setWindows(windowRows || []);
       setLoading(false);
     }
     loadData();
+
+    // keep the open/closed check current while the student is on this page
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -43,6 +69,8 @@ export default function Cart() {
     return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading cart...</div>;
   }
 
+  const status = getOrderStatus(now, windows, closedMessage);
+
   const lineItems = Object.entries(cart)
     .map(([id, qty]) => {
       const item = menuItems.find((m) => m.id === id);
@@ -58,6 +86,10 @@ export default function Cart() {
   }
 
   async function handleCheckout() {
+    if (!status.isOpen) {
+      alert('Sorry, ordering has closed. Please come back when ordering reopens.');
+      return;
+    }
     if (!name.trim()) {
       alert('Please enter your name.');
       return;
@@ -207,7 +239,19 @@ export default function Cart() {
         </div>
       ))}
 
-      {lineItems.length > 0 && (
+      {lineItems.length > 0 && !status.isOpen && (
+        <div style={{
+          marginTop: 20, padding: 16, background: '#fdeeea', color: '#a33c26',
+          borderRadius: 12, fontWeight: 600, textAlign: 'center',
+        }}>
+          {status.message || 'Ordering is currently closed.'}
+          <div style={{ fontWeight: 400, fontSize: 13, marginTop: 6 }}>
+            Your cart is saved — come back when ordering reopens to finish your order.
+          </div>
+        </div>
+      )}
+
+      {lineItems.length > 0 && status.isOpen && (
         <>
           <div style={{ marginTop: 16, borderTop: '1px solid #eee', paddingTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
