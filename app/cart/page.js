@@ -50,7 +50,6 @@ export default function Cart() {
     }
     loadData();
 
-    // keep the open/closed check current while the student is on this page
     const interval = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(interval);
   }, []);
@@ -196,7 +195,7 @@ export default function Cart() {
   }
 
   return (
-    <div style={{ maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 16, background: '#FFF8EE', minHeight: '100vh' }}>
+    <div style={{ boxSizing: 'border-box', maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 10, background: '#FFF8EE', minHeight: '100vh' }}>
       {confirming && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -218,34 +217,34 @@ export default function Cart() {
         </div>
       )}
 
-      <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', fontSize: 14, marginBottom: 12, cursor: 'pointer' }}>
+      <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', fontSize: 12, marginBottom: 6, cursor: 'pointer' }}>
         ← Back to menu
       </button>
 
-      <h1 style={{ fontSize: 24, marginBottom: 18 }}>Your cart</h1>
+      <h1 style={{ fontSize: 17, marginBottom: 8 }}>Your cart</h1>
 
-      {lineItems.length === 0 && <p style={{ fontSize: 15 }}>Your cart is empty.</p>}
+      {lineItems.length === 0 && <p style={{ fontSize: 13 }}>Your cart is empty.</p>}
 
       {lineItems.map((item) => (
         <div key={item.id} style={{
-          display: 'flex', justifyContent: 'space-between', padding: '11px 0',
+          display: 'flex', justifyContent: 'space-between', padding: '6px 0',
           borderBottom: '1px solid #eee',
         }}>
           <div>
-            <strong style={{ fontSize: 16 }}>{item.name}</strong>
-            <div style={{ fontSize: 14, color: '#777' }}>Qty: {item.qty}</div>
+            <strong style={{ fontSize: 13 }}>{item.name}</strong>
+            <div style={{ fontSize: 11, color: '#777' }}>Qty: {item.qty}</div>
           </div>
-          <div style={{ fontSize: 16 }}>₹{item.price * item.qty}</div>
+          <div style={{ fontSize: 13 }}>₹{item.price * item.qty}</div>
         </div>
       ))}
 
       {lineItems.length > 0 && !status.isOpen && (
         <div style={{
-          marginTop: 20, padding: 16, background: '#fdeeea', color: '#a33c26',
-          borderRadius: 12, fontWeight: 600, textAlign: 'center',
+          marginTop: 12, padding: 12, background: '#fdeeea', color: '#a33c26',
+          borderRadius: 10, fontWeight: 600, textAlign: 'center', fontSize: 13,
         }}>
           {status.message || 'Ordering is currently closed.'}
-          <div style={{ fontWeight: 400, fontSize: 13, marginTop: 6 }}>
+          <div style={{ fontWeight: 400, fontSize: 11, marginTop: 4 }}>
             Your cart is saved — come back when ordering reopens to finish your order.
           </div>
         </div>
@@ -253,20 +252,20 @@ export default function Cart() {
 
       {lineItems.length > 0 && status.isOpen && (
         <>
-          <div style={{ marginTop: 18, borderTop: '1px solid #eee', paddingTop: 13, fontSize: 15 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+          <div style={{ marginTop: 8, borderTop: '1px solid #eee', paddingTop: 7, fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
               <span>Subtotal</span><span>₹{subtotal}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7, color: '#777' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, color: '#777' }}>
               <span>Handling fee</span><span>₹{handlingFee}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15 }}>
               <span>Total</span><span>₹{total}</span>
             </div>
           </div>
 
-          <div style={{ marginTop: 26 }}>
-            <label style={{ fontSize: 15, fontWeight: 600, display: 'block', marginBottom: 7 }}>
+          <div style={{ marginTop: 10 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 3 }}>
               Your name
             </label>
             <input
@@ -275,12 +274,12 @@ export default function Cart() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Your full name"
               style={{
-                width: '100%', padding: 13, borderRadius: 10, border: '1px solid #ccc',
-                fontSize: 16, boxSizing: 'border-box', marginBottom: 17,
+                width: '100%', padding: 9, borderRadius: 8, border: '1px solid #ccc',
+                fontSize: 13, boxSizing: 'border-box', marginBottom: 8,
               }}
             />
 
-            <label style={{ fontSize: 15, fontWeight: 600, display: 'block', marginBottom: 7 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 3 }}>
               Your college name
             </label>
             <input
@@ -289,12 +288,12 @@ export default function Cart() {
               onChange={(e) => setCollege(e.target.value)}
               placeholder="e.g. VIT-AP"
               style={{
-                width: '100%', padding: 13, borderRadius: 10, border: '1px solid #ccc',
-                fontSize: 16, boxSizing: 'border-box', marginBottom: 17,
+                width: '100%', padding: 9, borderRadius: 8, border: '1px solid #ccc',
+                fontSize: 13, boxSizing: 'border-box', marginBottom: 8,
               }}
             />
 
-            <label style={{ fontSize: 15, fontWeight: 600, display: 'block', marginBottom: 7 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 3 }}>
               Your phone number (for pickup)
             </label>
             <input
@@ -304,8 +303,8 @@ export default function Cart() {
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
               placeholder="10-digit mobile number"
               style={{
-                width: '100%', padding: 13, borderRadius: 10, border: '1px solid #ccc',
-                fontSize: 16, boxSizing: 'border-box',
+                width: '100%', padding: 9, borderRadius: 8, border: '1px solid #ccc',
+                fontSize: 13, boxSizing: 'border-box',
               }}
             />
           </div>
@@ -314,8 +313,8 @@ export default function Cart() {
             onClick={handleCheckout}
             disabled={paying}
             style={{
-              width: '100%', marginTop: 22, padding: 15, background: '#D9642B', color: '#fff',
-              border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 17, cursor: 'pointer',
+              width: '100%', marginTop: 12, padding: 11, background: '#D9642B', color: '#fff',
+              border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer',
             }}
           >
             {paying ? 'Processing...' : `Pay ₹${total}`}
