@@ -21,7 +21,6 @@ function getOrderStatus(now, windows, closedMessage) {
 }
 
 function isItemTimeAvailable(item, now) {
-  // If no custom time range is set, item is always available (per your existing logic)
   if (!item.available_start_time || !item.available_end_time) return true;
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -33,16 +32,12 @@ function isItemTimeAvailable(item, now) {
   const endMin = toMin(item.available_end_time);
 
   if (startMin <= endMin) {
-    // normal range, e.g. 18:00 to 20:00
     return nowMin >= startMin && nowMin < endMin;
   } else {
-    // range crosses midnight, e.g. 22:00 to 02:00
     return nowMin >= startMin || nowMin < endMin;
   }
 }
 
-// Matches loosely: ignores capital/lowercase letters and extra spaces,
-// so "Fast Food", "fast food ", "FAST FOOD" are all treated as the same category.
 function normalizeCategory(text) {
   return (text || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
@@ -81,7 +76,6 @@ export default function Home() {
     }
     loadData();
 
-    // refresh the clock every minute so time-restricted items appear/disappear automatically
     const interval = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
@@ -142,18 +136,18 @@ export default function Home() {
   }, 0);
 
   return (
-    <div style={{ maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 14, paddingBottom: cartCount > 0 ? 80 : 14, background: '#FFF8EE', minHeight: '100vh' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 10 }}>Hungry Buds</h1>
+    <div style={{ boxSizing: 'border-box', overflowX: 'hidden', maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 12, paddingBottom: cartCount > 0 ? 74 : 12, background: '#FFF8EE', minHeight: '100vh' }}>
+      <h1 style={{ fontSize: 20, marginBottom: 8 }}>Hungry Buds</h1>
 
       <div style={{
-        padding: 12, borderRadius: 12, marginBottom: 16, fontSize: 13,
+        boxSizing: 'border-box', padding: 10, borderRadius: 10, marginBottom: 12, fontSize: 12,
         background: status.isOpen ? '#e6f5e9' : '#fdeeea',
         color: status.isOpen ? '#256029' : '#a33c26', fontWeight: 600,
       }}>
         {status.isOpen ? `Ordering open — closes in ${status.closesInMinutes} minutes` : status.message}
       </div>
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 10 }}>
         <input
           type="text"
           value={search}
@@ -162,11 +156,11 @@ export default function Home() {
           style={{
             width: '100%',
             boxSizing: 'border-box',
-            padding: '11px 14px',
-            borderRadius: 12,
+            padding: '9px 12px',
+            borderRadius: 10,
             border: '1.5px solid #eee',
             background: '#fff',
-            fontSize: 14,
+            fontSize: 13,
             color: '#2B2118',
             outline: 'none',
           }}
@@ -175,13 +169,13 @@ export default function Home() {
 
       {categoryButtons.length > 0 && (
         <div style={{
-          display: 'flex', gap: 7, overflowX: 'auto', marginBottom: 14,
+          boxSizing: 'border-box', display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12,
           paddingBottom: 4, WebkitOverflowScrolling: 'touch',
         }}>
           <button
             onClick={() => setActiveCategory(null)}
             style={{
-              flexShrink: 0, padding: '7px 14px', borderRadius: 20, fontWeight: 700, fontSize: 12,
+              flexShrink: 0, padding: '6px 12px', borderRadius: 18, fontWeight: 700, fontSize: 11,
               border: activeCategory === null ? 'none' : '1.5px solid #ddd',
               background: activeCategory === null ? '#D9642B' : '#fff',
               color: activeCategory === null ? '#fff' : '#2B2118',
@@ -197,7 +191,7 @@ export default function Home() {
                 key={btn.id}
                 onClick={() => setActiveCategory(isActive ? null : btn.category_value)}
                 style={{
-                  flexShrink: 0, padding: '7px 14px', borderRadius: 20, fontWeight: 700, fontSize: 12,
+                  flexShrink: 0, padding: '6px 12px', borderRadius: 18, fontWeight: 700, fontSize: 11,
                   border: isActive ? 'none' : '1.5px solid #ddd',
                   background: isActive ? '#D9642B' : '#fff',
                   color: isActive ? '#fff' : '#2B2118',
@@ -217,41 +211,41 @@ export default function Home() {
       {Object.keys(grouped).length === 0 && !searchLower && <p>No menu items found yet.</p>}
 
       {Object.entries(grouped).map(([category, items]) => (
-        <div key={category} style={{ marginBottom: 22 }}>
-          <h2 style={{ fontSize: 17, marginBottom: 10, fontWeight: 800, color: '#2B2118' }}>{category}</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div key={category} style={{ marginBottom: 18 }}>
+          <h2 style={{ fontSize: 15, marginBottom: 8, fontWeight: 800, color: '#2B2118' }}>{category}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {items.map((item) => {
               const qty = cart[item.id] || 0;
               return (
                 <div key={item.id} style={{
-                  display: 'flex', gap: 10, background: '#fff', borderRadius: 14,
-                  border: '1px solid #eee', padding: 9, alignItems: 'center',
+                  boxSizing: 'border-box', display: 'flex', gap: 8, background: '#fff', borderRadius: 12,
+                  border: '1px solid #eee', padding: 8, alignItems: 'center',
                 }}>
                   {item.photo_url ? (
-                    <img src={item.photo_url} alt={item.name} style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                    <img src={item.photo_url} alt={item.name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                   ) : (
-                    <div style={{ width: 64, height: 64, borderRadius: 10, flexShrink: 0, background: '#F6C877' }} />
+                    <div style={{ width: 56, height: 56, borderRadius: 8, flexShrink: 0, background: '#F6C877' }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ display: 'inline-block', width: 10, height: 10, border: '2px solid', borderColor: item.veg ? '#2e7d32' : '#c62828', flexShrink: 0 }} />
-                      <strong style={{ color: '#2B2118', fontSize: 14 }}>{item.name}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ display: 'inline-block', width: 9, height: 9, border: '2px solid', borderColor: item.veg ? '#2e7d32' : '#c62828', flexShrink: 0 }} />
+                      <strong style={{ color: '#2B2118', fontSize: 13 }}>{item.name}</strong>
                     </div>
-                    <div style={{ fontSize: 12, color: '#777', margin: '2px 0 5px' }}>{item.description}</div>
+                    <div style={{ fontSize: 11, color: '#777', margin: '2px 0 4px' }}>{item.description}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: 13 }}>₹{item.price}</span>
+                      <span style={{ fontWeight: 700, fontSize: 12 }}>₹{item.price}</span>
                       {status.isOpen ? (
                         qty === 0 ? (
-                          <button onClick={() => addItem(item.id)} style={{ border: '1.5px solid #D9642B', background: '#fff', color: '#D9642B', fontWeight: 700, fontSize: 12, padding: '5px 12px', borderRadius: 8, cursor: 'pointer' }}>ADD</button>
+                          <button onClick={() => addItem(item.id)} style={{ border: '1.5px solid #D9642B', background: '#fff', color: '#D9642B', fontWeight: 700, fontSize: 11, padding: '4px 10px', borderRadius: 7, cursor: 'pointer' }}>ADD</button>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#D9642B', borderRadius: 8, padding: '4px 9px' }}>
-                            <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>−</button>
-                            <span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{qty}</span>
-                            <button onClick={() => addItem(item.id)} style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+</button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#D9642B', borderRadius: 7, padding: '3px 8px' }}>
+                            <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>−</button>
+                            <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{qty}</span>
+                            <button onClick={() => addItem(item.id)} style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>+</button>
                           </div>
                         )
                       ) : (
-                        <span style={{ fontSize: 12, color: '#999' }}>Closed</span>
+                        <span style={{ fontSize: 11, color: '#999' }}>Closed</span>
                       )}
                     </div>
                   </div>
@@ -264,15 +258,15 @@ export default function Home() {
 
       {cartCount > 0 && status.isOpen && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 460, margin: '0 auto',
-          background: '#2B2118', color: '#fff', padding: '12px 16px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '20px 20px 0 0',
+          boxSizing: 'border-box', position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 460, margin: '0 auto',
+          background: '#2B2118', color: '#fff', padding: '10px 14px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '18px 18px 0 0',
         }}>
           <div>
-            <div style={{ fontSize: 11, color: '#C9B8A4' }}>{cartCount} item{cartCount > 1 ? 's' : ''}</div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>₹{cartTotal}</div>
+            <div style={{ fontSize: 10, color: '#C9B8A4' }}>{cartCount} item{cartCount > 1 ? 's' : ''}</div>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>₹{cartTotal}</div>
           </div>
-          <button onClick={() => router.push('/cart')} style={{ background: '#D9642B', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          <button onClick={() => router.push('/cart')} style={{ background: '#D9642B', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 9, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
             View cart →
           </button>
         </div>
