@@ -136,7 +136,7 @@ export default function Home() {
   }, 0);
 
   return (
-    <div style={{ boxSizing: 'border-box', overflowX: 'hidden', maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 12, paddingBottom: cartCount > 0 ? 74 : 12, background: '#FFF8EE', minHeight: '100vh' }}>
+    <div style={{ boxSizing: 'border-box', maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 12, paddingBottom: cartCount > 0 ? 74 : 12, background: '#FFF8EE', minHeight: '100vh' }}>
       <h1 style={{ fontSize: 20, marginBottom: 8 }}>Hungry Buds</h1>
 
       <div style={{
@@ -169,8 +169,7 @@ export default function Home() {
 
       {categoryButtons.length > 0 && (
         <div style={{
-          boxSizing: 'border-box', display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12,
-          paddingBottom: 4, WebkitOverflowScrolling: 'touch',
+          boxSizing: 'border-box', display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12,
         }}>
           <button
             onClick={() => setActiveCategory(null)}
@@ -232,7 +231,7 @@ export default function Home() {
                       <strong style={{ color: '#2B2118', fontSize: 13 }}>{item.name}</strong>
                     </div>
                     <div style={{ fontSize: 11, color: '#777', margin: '2px 0 4px' }}>{item.description}</div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 700, fontSize: 12 }}>₹{item.price}</span>
                       {status.isOpen ? (
                         qty === 0 ? (
