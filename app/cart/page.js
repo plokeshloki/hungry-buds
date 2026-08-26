@@ -105,10 +105,26 @@ export default function Cart() {
     setPaying(true);
 
     try {
+      const orderWindowId = localStorage.getItem('hb_window_id') || null;
+
       const createRes = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total }),
+        body: JSON.stringify({
+          amount: total,
+          phone,
+          name,
+          college,
+          lineItems: lineItems.map((i) => ({
+            id: i.id,
+            name: i.name,
+            price: i.price,
+            qty: i.qty,
+          })),
+          subtotal,
+          handlingFee,
+          orderWindowId,
+        }),
       });
       const createData = await createRes.json();
 
@@ -139,7 +155,7 @@ export default function Cart() {
               phone,
               name,
               college,
-              orderWindowId: localStorage.getItem('hb_window_id') || null,
+              orderWindowId,
               lineItems: lineItems.map((i) => ({
                 id: i.id,
                 name: i.name,
