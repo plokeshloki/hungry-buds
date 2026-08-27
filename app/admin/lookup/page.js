@@ -28,7 +28,7 @@ export default function OrderLookup() {
     setLoadingOrders(true);
     const { data: orderRows, error: orderError } = await supabase
       .from('orders')
-      .select('id, created_at, status, total_amount, customer_id')
+      .select('id, created_at, status, total_amount, customer_id, payment_method')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -106,42 +106,57 @@ export default function OrderLookup() {
         </p>
       )}
 
-      {filteredOrders.map((order) => (
-        <div
-          key={order.id}
-          style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <strong>{order.customer?.name || 'No name'}</strong>
-            <span
-              style={{
-                fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                background: order.status === 'paid' ? '#e6f4ea' : '#fdeeee',
-                color: order.status === 'paid' ? '#2e7d32' : '#a33c26',
-              }}
-            >
-              {order.status.toUpperCase()}
-            </span>
-          </div>
-          <div style={{ color: '#666', fontSize: 13, marginBottom: 8 }}>
-            {order.customer?.phone} • {order.customer?.college_name || 'No college'} • {new Date(order.created_at).toLocaleString('en-IN', {
-              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-            })}
-          </div>
-
-          {order.items.map((item, idx) => (
-            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
-              <span>{item.item_name} × {item.quantity}</span>
-              <span>₹{item.unit_price * item.quantity}</span>
+      {filteredOrders.map((order) => {
+        const isCod = order.payment_method === 'cod';
+        return (
+          <div
+            key={order.id}
+            style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <strong>{order.customer?.name || 'No name'}</strong>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {isCod && (
+                  <span
+                    style={{
+                      fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                      background: '#fff3e0', color: '#b06a00',
+                    }}
+                  >
+                    CASH ON DELIVERY
+                  </span>
+                )}
+                <span
+                  style={{
+                    fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                    background: order.status === 'paid' ? '#e6f4ea' : (order.status === 'cod_pending' ? '#fff3e0' : '#fdeeee'),
+                    color: order.status === 'paid' ? '#2e7d32' : (order.status === 'cod_pending' ? '#b06a00' : '#a33c26'),
+                  }}
+                >
+                  {order.status.toUpperCase()}
+                </span>
+              </div>
             </div>
-          ))}
+            <div style={{ color: '#666', fontSize: 13, marginBottom: 8 }}>
+              {order.customer?.phone} • {order.customer?.college_name || 'No college'} • {new Date(order.created_at).toLocaleString('en-IN', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+              })}
+            </div>
 
-          <div style={{ borderTop: '1px solid #eee', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-            <span>Total</span>
-            <span>₹{order.total_amount}</span>
+            {order.items.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
+                <span>{item.item_name} × {item.quantity}</span>
+                <span>₹{item.unit_price * item.quantity}</span>
+              </div>
+            ))}
+
+            <div style={{ borderTop: '1px solid #eee', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+              <span>Total</span>
+              <span>₹{order.total_amount}</span>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
