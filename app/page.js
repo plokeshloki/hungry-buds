@@ -75,7 +75,21 @@ export default function Home() {
     loadData();
 
     const interval = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(interval);
+
+    function refreshOnReturn() {
+      if (document.visibilityState === 'visible') {
+        setNow(new Date());
+        loadData();
+      }
+    }
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    window.addEventListener('pageshow', refreshOnReturn);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+      window.removeEventListener('pageshow', refreshOnReturn);
+    };
   }, []);
 
   useEffect(() => {
