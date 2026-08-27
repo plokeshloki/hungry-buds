@@ -65,6 +65,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // If the webhook already saved this payment (it can sometimes arrive first),
+    // don't create a second, duplicate order.
+    const { data: existingOrder } = await supabaseAdmin
+      .from('orders')
+      .select('id')
+      .eq('razorpay_payment_id', razorpay_payment_id)
+      .maybeSingle();
+
+    if (existingOrder) {
+      await supabaseAdmin.from('pending_orders').delete().eq('razorpay_order_id', razorpay_order_id);
+      return NextResponse.json({ success: true, orderId: existingOrder.id });
+    }
+
     // These two don't depend on each other, so run them at the same time instead of one after another
     const [orderWindowId, customerResult] = await Promise.all([
       getCurrentWindowId(),
@@ -105,6 +118,9 @@ export async function POST(request) {
       .from('order_items')
       .insert(orderItemsToInsert);
     if (itemsError) throw itemsError;
+
+    // Clean up — this order is now safely saved via the normal flow.
+    await supabaseAdmin.from('pending_orders').delete().eq('razorpay_order_id', razorpay_order_id);
 
     return NextResponse.json({ success: true, orderId: newOrder.id });
   } catch (err) {
