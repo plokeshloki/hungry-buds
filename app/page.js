@@ -59,19 +59,17 @@ export default function Home() {
     setCart(savedCart);
 
     async function loadData() {
-      const { data: items } = await supabase.from('menu_items').select('*').eq('in_stock', true);
-      const { data: windowRows } = await supabase.from('order_windows').select('*').eq('is_active', true);
-      const { data: settings } = await supabase.from('app_settings').select('closed_message').limit(1).single();
-      const { data: catButtons } = await supabase
-        .from('category_buttons')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+      const [itemsRes, windowsRes, settingsRes, catButtonsRes] = await Promise.all([
+        supabase.from('menu_items').select('*').eq('in_stock', true),
+        supabase.from('order_windows').select('*').eq('is_active', true),
+        supabase.from('app_settings').select('closed_message').limit(1).single(),
+        supabase.from('category_buttons').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+      ]);
 
-      setMenuItems(items || []);
-      setWindows(windowRows || []);
-      setClosedMessage(settings?.closed_message || 'Ordering is currently closed.');
-      setCategoryButtons(catButtons || []);
+      setMenuItems(itemsRes.data || []);
+      setWindows(windowsRes.data || []);
+      setClosedMessage(settingsRes.data?.closed_message || 'Ordering is currently closed.');
+      setCategoryButtons(catButtonsRes.data || []);
       setLoading(false);
     }
     loadData();
