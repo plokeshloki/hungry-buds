@@ -85,6 +85,7 @@ export default function SettingsManager() {
         handling_fee: settings.handling_fee,
         delivery_message: settings.delivery_message,
         delivery_time: settings.delivery_time,
+        cod_enabled: settings.cod_enabled,
       })
       .eq('id', settings.id);
     setSavingSettings(false);
@@ -228,6 +229,15 @@ export default function SettingsManager() {
             style={inputStyle}
             placeholder="e.g. 8:00 PM"
           />
+
+          <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 14 }}>
+            <input
+              type="checkbox"
+              checked={!!settings.cod_enabled}
+              onChange={(e) => updateSettingsField('cod_enabled', e.target.checked)}
+            />
+            Allow Cash on Delivery
+          </label>
 
           <button
             onClick={saveSettings}
