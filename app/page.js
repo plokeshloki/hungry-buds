@@ -20,6 +20,14 @@ function getOrderStatus(now, windows, closedMessage) {
   return { isOpen: false, message: closedMessage };
 }
 
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 function isItemTimeAvailable(item, now) {
   if (!item.available_start_time || !item.available_end_time) return true;
 
@@ -53,6 +61,7 @@ export default function Home() {
   const [now, setNow] = useState(new Date());
   const [categoryButtons, setCategoryButtons] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [showSchedule, setShowSchedule] = useState(false);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -162,13 +171,47 @@ export default function Home() {
         </button>
       </div>
 
-      <div style={{
-        boxSizing: 'border-box', padding: 10, borderRadius: 10, marginBottom: 12, fontSize: 12,
-        background: status.isOpen ? '#e6f5e9' : '#fdeeea',
-        color: status.isOpen ? '#256029' : '#a33c26', fontWeight: 600,
-      }}>
-        {status.isOpen ? `Ordering open — closes in ${status.closesInMinutes} minutes` : status.message}
+      <div
+        onClick={() => setShowSchedule((s) => !s)}
+        style={{
+          boxSizing: 'border-box', padding: 10, borderRadius: 10, marginBottom: 4, fontSize: 12,
+          background: status.isOpen ? '#e6f5e9' : '#fdeeea',
+          color: status.isOpen ? '#256029' : '#a33c26', fontWeight: 600, cursor: 'pointer',
+        }}
+      >
+        {status.isOpen
+          ? `Ordering open — closes at ${formatTime(status.window.order_close)}`
+          : status.message}
+        {status.isOpen && status.window?.pickup_start && (
+          <div style={{ fontWeight: 400, fontSize: 11, marginTop: 3 }}>
+            Pickup: {formatTime(status.window.pickup_start)} – {formatTime(status.window.pickup_end)}
+          </div>
+        )}
+        <div style={{ fontWeight: 400, fontSize: 10, marginTop: 4, textDecoration: 'underline' }}>
+          {showSchedule ? 'Hide today\'s timings' : 'View today\'s timings'}
+        </div>
       </div>
+
+      {showSchedule && windows.length > 0 && (
+        <div style={{
+          boxSizing: 'border-box', background: '#fff', border: '1px solid #eee', borderRadius: 10,
+          padding: 10, marginBottom: 8, fontSize: 11,
+        }}>
+          {windows.map((w) => (
+            <div key={w.id} style={{ marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid #f2f2f2' }}>
+              <strong style={{ fontSize: 12 }}>{w.label}</strong>
+              <div style={{ color: '#666', marginTop: 2 }}>
+                Order: {formatTime(w.order_open)} – {formatTime(w.order_close)}
+              </div>
+              {w.pickup_start && (
+                <div style={{ color: '#666' }}>
+                  Pickup: {formatTime(w.pickup_start)} – {formatTime(w.pickup_end)}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ marginBottom: 10 }}>
         <input
