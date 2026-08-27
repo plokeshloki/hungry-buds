@@ -135,7 +135,18 @@ export default function Home() {
 
   return (
     <div style={{ boxSizing: 'border-box', maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 12, paddingBottom: cartCount > 0 ? 74 : 12, background: '#FFF8EE', minHeight: '100vh' }}>
-      <h1 style={{ fontSize: 20, marginBottom: 8 }}>Hungry Buds</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 20, margin: 0 }}>Hungry Buds</h1>
+        <button
+          onClick={() => router.push('/my-orders')}
+          style={{
+            background: 'none', border: '1.5px solid #D9642B', color: '#D9642B',
+            fontWeight: 700, fontSize: 11, padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
+          }}
+        >
+          My Orders
+        </button>
+      </div>
 
       <div style={{
         boxSizing: 'border-box', padding: 10, borderRadius: 10, marginBottom: 12, fontSize: 12,
