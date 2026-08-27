@@ -35,16 +35,22 @@ export default function Cart() {
   const [closedMessage, setClosedMessage] = useState('');
   const [now, setNow] = useState(new Date());
 
+  const [codEnabled, setCodEnabled] = useState(false);
+  const [showCodConfirm, setShowCodConfirm] = useState(false);
+  const [codPlacing, setCodPlacing] = useState(false);
+  const [codRejectedMessage, setCodRejectedMessage] = useState(false);
+
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
     setCart(savedCart);
     async function loadData() {
       const { data: items } = await supabase.from('menu_items').select('*');
-      const { data: settings } = await supabase.from('app_settings').select('handling_fee, closed_message').limit(1).single();
+      const { data: settings } = await supabase.from('app_settings').select('handling_fee, closed_message, cod_enabled').limit(1).single();
       const { data: windowRows } = await supabase.from('order_windows').select('*').eq('is_active', true);
       setMenuItems(items || []);
       setHandlingFee(settings?.handling_fee ?? 5);
       setClosedMessage(settings?.closed_message || 'Ordering is currently closed.');
+      setCodEnabled(settings?.cod_enabled === true);
       setWindows(windowRows || []);
       setLoading(false);
     }
@@ -84,23 +90,28 @@ export default function Cart() {
     return /^[6-9]\d{9}$/.test(p);
   }
 
-  async function handleCheckout() {
+  function validateDetails() {
     if (!status.isOpen) {
       alert('Sorry, ordering has closed. Please come back when ordering reopens.');
-      return;
+      return false;
     }
     if (!name.trim()) {
       alert('Please enter your name.');
-      return;
+      return false;
     }
     if (!college.trim()) {
       alert('Please enter your college name.');
-      return;
+      return false;
     }
     if (!isValidPhone(phone)) {
       alert('Please enter a valid 10-digit phone number.');
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function handleCheckout() {
+    if (!validateDetails()) return;
 
     setPaying(true);
 
@@ -210,6 +221,57 @@ export default function Cart() {
     }
   }
 
+  function handleCodButtonClick() {
+    if (!validateDetails()) return;
+    setCodRejectedMessage(false);
+    setShowCodConfirm(true);
+  }
+
+  function handleCodNo() {
+    setShowCodConfirm(false);
+    setCodRejectedMessage(true);
+  }
+
+  async function handleCodYes() {
+    setCodPlacing(true);
+    try {
+      const orderWindowId = localStorage.getItem('hb_window_id') || null;
+
+      const res = await fetch('/api/create-cod-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          name,
+          college,
+          orderWindowId,
+          lineItems: lineItems.map((i) => ({
+            id: i.id,
+            name: i.name,
+            price: i.price,
+            qty: i.qty,
+          })),
+          subtotal,
+          handlingFee,
+          total,
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.removeItem('hb_cart');
+        setShowCodConfirm(false);
+        router.push('/order-confirmed?cod=1');
+      } else {
+        alert(data.error || 'Could not place your Cash on Delivery order. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong placing your order. Please try again.');
+    }
+    setCodPlacing(false);
+  }
+
   return (
     <div style={{ boxSizing: 'border-box', maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 10, background: '#FFF8EE', minHeight: '100vh' }}>
       {confirming && (
@@ -230,6 +292,49 @@ export default function Cart() {
             This usually takes just a few seconds. Please don't close this page.
           </p>
           <style>{`@keyframes hb-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {showCodConfirm && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.45)', zIndex: 999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20,
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 14, padding: 20, maxWidth: 320, width: '100%',
+            textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+          }}>
+            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
+              Confirm your order?
+            </p>
+            <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+              You'll pay ₹{total} in cash when your order is delivered.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={handleCodNo}
+                disabled={codPlacing}
+                style={{
+                  flex: 1, padding: 10, background: '#eee', color: '#333',
+                  border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={handleCodYes}
+                disabled={codPlacing}
+                style={{
+                  flex: 1, padding: 10, background: '#D9642B', color: '#fff',
+                  border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                {codPlacing ? 'Placing...' : 'Yes'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -325,6 +430,15 @@ export default function Cart() {
             />
           </div>
 
+          {codRejectedMessage && (
+            <div style={{
+              marginTop: 10, padding: 10, background: '#fdeeea', color: '#a33c26',
+              borderRadius: 8, fontSize: 12, textAlign: 'center', fontWeight: 600,
+            }}>
+              Sorry, we don't take your order.
+            </div>
+          )}
+
           <button
             onClick={handleCheckout}
             disabled={paying}
@@ -335,6 +449,19 @@ export default function Cart() {
           >
             {paying ? 'Processing...' : `Pay ₹${total}`}
           </button>
+
+          {codEnabled && (
+            <button
+              onClick={handleCodButtonClick}
+              disabled={paying}
+              style={{
+                width: '100%', marginTop: 8, padding: 11, background: '#fff', color: '#D9642B',
+                border: '2px solid #D9642B', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+              }}
+            >
+              Cash on Delivery
+            </button>
+          )}
         </>
       )}
     </div>
