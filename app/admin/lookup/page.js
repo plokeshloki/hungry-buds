@@ -10,6 +10,7 @@ export default function OrderLookup() {
   const [allOrders, setAllOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState('');
+  const [markingId, setMarkingId] = useState(null);
 
   useEffect(() => {
     async function init() {
@@ -28,7 +29,7 @@ export default function OrderLookup() {
     setLoadingOrders(true);
     const { data: orderRows, error: orderError } = await supabase
       .from('orders')
-      .select('id, created_at, status, total_amount, customer_id, payment_method')
+      .select('id, created_at, status, total_amount, customer_id, payment_method, cash_collected')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -55,6 +56,28 @@ export default function OrderLookup() {
 
     setAllOrders(ordersWithDetails);
     setLoadingOrders(false);
+  }
+
+  async function markCashCollected(orderId) {
+    setMarkingId(orderId);
+    try {
+      const res = await fetch('/api/mark-cash-collected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAllOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, cash_collected: true, status: 'paid' } : o))
+        );
+      } else {
+        alert(data.error || 'Could not mark as collected. Please try again.');
+      }
+    } catch (err) {
+      alert('Something went wrong. Please try again.');
+    }
+    setMarkingId(null);
   }
 
   const filteredOrders = phone
@@ -108,6 +131,7 @@ export default function OrderLookup() {
 
       {filteredOrders.map((order) => {
         const isCod = order.payment_method === 'cod';
+        const needsCollection = isCod && !order.cash_collected;
         return (
           <div
             key={order.id}
@@ -115,7 +139,7 @@ export default function OrderLookup() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
               <strong>{order.customer?.name || 'No name'}</strong>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {isCod && (
                   <span
                     style={{
@@ -154,6 +178,25 @@ export default function OrderLookup() {
               <span>Total</span>
               <span>₹{order.total_amount}</span>
             </div>
+
+            {needsCollection && (
+              <button
+                onClick={() => markCashCollected(order.id)}
+                disabled={markingId === order.id}
+                style={{
+                  width: '100%', marginTop: 10, padding: 10, background: '#D9642B', color: '#fff',
+                  border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                {markingId === order.id ? 'Marking...' : 'Mark Cash Collected'}
+              </button>
+            )}
+
+            {isCod && order.cash_collected && (
+              <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#2e7d32' }}>
+                ✓ Cash collected
+              </div>
+            )}
           </div>
         );
       })}
