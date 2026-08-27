@@ -182,7 +182,7 @@ export default function Cart() {
 
           if (verifyRes.ok && verifyData.success) {
             localStorage.removeItem('hb_cart');
-            router.push('/order-confirmed');
+            router.push('/order-confirmed?method=online&amount=' + total);
           } else {
             setConfirming(false);
             alert('Payment verification failed. If money was deducted, it will be refunded automatically. Please contact the restaurant.');
@@ -261,7 +261,7 @@ export default function Cart() {
       if (res.ok && data.success) {
         localStorage.removeItem('hb_cart');
         setShowCodConfirm(false);
-        router.push('/order-confirmed?cod=1');
+        router.push('/order-confirmed?method=cod&amount=' + total);
       } else {
         alert(data.error || 'Could not place your Cash on Delivery order. Please try again.');
       }
