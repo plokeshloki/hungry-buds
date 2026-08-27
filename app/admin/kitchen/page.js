@@ -10,6 +10,7 @@ export default function KitchenSummary() {
   const [selectedWindow, setSelectedWindow] = useState('');
   const [summary, setSummary] = useState([]);
   const [orderCount, setOrderCount] = useState(0);
+  const [codCount, setCodCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [mode, setMode] = useState('window'); // 'window' or 'custom'
@@ -50,14 +51,15 @@ export default function KitchenSummary() {
 
     const { data: orders, error: orderError } = await supabase
       .from('orders')
-      .select('id')
-      .eq('status', 'paid')
+      .select('id, payment_method')
+      .in('status', ['paid', 'cod_pending'])
       .eq('order_window_id', windowId)
       .gte('created_at', todayStart.toISOString());
 
     if (orderError || !orders) {
       setSummary([]);
       setOrderCount(0);
+      setCodCount(0);
       setLoading(false);
       return;
     }
@@ -86,14 +88,15 @@ export default function KitchenSummary() {
 
     const { data: orders, error: orderError } = await supabase
       .from('orders')
-      .select('id')
-      .eq('status', 'paid')
+      .select('id, payment_method')
+      .in('status', ['paid', 'cod_pending'])
       .gte('created_at', fromDate.toISOString())
       .lt('created_at', toDate.toISOString());
 
     if (orderError || !orders) {
       setSummary([]);
       setOrderCount(0);
+      setCodCount(0);
       setLoading(false);
       return;
     }
@@ -103,6 +106,7 @@ export default function KitchenSummary() {
 
   async function loadItemsForOrders(orders) {
     setOrderCount(orders.length);
+    setCodCount(orders.filter((o) => o.payment_method === 'cod').length);
 
     if (orders.length === 0) {
       setSummary([]);
@@ -142,7 +146,7 @@ export default function KitchenSummary() {
     <div style={{ maxWidth: 600, margin: '30px auto', fontFamily: 'sans-serif', padding: 16 }}>
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Kitchen Summary</h1>
       <p style={{ color: '#888', marginBottom: 16, fontSize: 13 }}>
-        Total quantity to cook for today's paid orders, per item.
+        Total quantity to cook for today's confirmed orders (paid online + cash on delivery), per item.
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -230,11 +234,16 @@ export default function KitchenSummary() {
 
       {!loading && (
         <>
-          <p style={{ color: '#666', marginBottom: 12, fontSize: 13 }}>
-            {orderCount} paid order(s) today for this {mode === 'window' ? 'window' : 'time range'}
+          <p style={{ color: '#666', marginBottom: 4, fontSize: 13 }}>
+            {orderCount} confirmed order(s) today for this {mode === 'window' ? 'window' : 'time range'}
           </p>
+          {codCount > 0 && (
+            <p style={{ color: '#b06a00', marginBottom: 12, fontSize: 13, fontWeight: 600 }}>
+              Includes {codCount} Cash on Delivery order(s) — collect payment on delivery
+            </p>
+          )}
 
-          {summary.length === 0 && <p style={{ color: '#888' }}>No paid orders yet for this {mode === 'window' ? 'window' : 'time range'} today.</p>}
+          {summary.length === 0 && <p style={{ color: '#888' }}>No confirmed orders yet for this {mode === 'window' ? 'window' : 'time range'} today.</p>}
 
           {summary.map((row) => (
             <div
