@@ -55,6 +55,8 @@ export default function CategoryButtonsManager() {
       category_value: newCategoryValue.trim(),
       sort_order: maxSort + 1,
       is_active: true,
+      available_start_time: null,
+      available_end_time: null,
     });
     setAdding(false);
     if (error) {
@@ -79,6 +81,8 @@ export default function CategoryButtonsManager() {
         label: btn.label,
         category_value: btn.category_value,
         is_active: btn.is_active,
+        available_start_time: btn.available_start_time || null,
+        available_end_time: btn.available_end_time || null,
       })
       .eq('id', btn.id);
     if (error) {
@@ -243,6 +247,33 @@ export default function CategoryButtonsManager() {
             />
             Active (show this button to students)
           </label>
+
+          <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+            Time Restriction (optional — leave both blank to show all the time)
+          </label>
+          <p style={{ fontSize: 11, color: '#999', marginTop: -2, marginBottom: 6 }}>
+            When set, this button AND all items in "{btn.category_value}" will be hidden from students outside this time range — same as an individual item's time restriction.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, color: '#777', display: 'block', marginBottom: 2 }}>From</label>
+              <input
+                type="time"
+                value={btn.available_start_time || ''}
+                onChange={(e) => updateLocalField(btn.id, 'available_start_time', e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, color: '#777', display: 'block', marginBottom: 2 }}>Until</label>
+              <input
+                type="time"
+                value={btn.available_end_time || ''}
+                onChange={(e) => updateLocalField(btn.id, 'available_end_time', e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+          </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button
