@@ -50,6 +50,24 @@ function normalizeCategory(text) {
   return (text || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+function isCategoryButtonTimeAvailable(btn, now) {
+  if (!btn.available_start_time || !btn.available_end_time) return true;
+
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const startMin = toMin(btn.available_start_time);
+  const endMin = toMin(btn.available_end_time);
+
+  if (startMin <= endMin) {
+    return nowMin >= startMin && nowMin < endMin;
+  } else {
+    return nowMin >= startMin || nowMin < endMin;
+  }
+}
+
 export default function Home() {
   const router = useRouter();
   const [menuItems, setMenuItems] = useState([]);
@@ -117,7 +135,15 @@ export default function Home() {
     return <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Loading menu...</div>;
   }
 
-  const timeAvailableItems = menuItems.filter((item) => isItemTimeAvailable(item, now));
+  const timeAvailableCategoryButtons = categoryButtons.filter((btn) => isCategoryButtonTimeAvailable(btn, now));
+
+  const closedCategoryValues = categoryButtons
+    .filter((btn) => !isCategoryButtonTimeAvailable(btn, now))
+    .map((btn) => normalizeCategory(btn.category_value));
+
+  const timeAvailableItems = menuItems
+    .filter((item) => isItemTimeAvailable(item, now))
+    .filter((item) => !closedCategoryValues.includes(normalizeCategory(item.category)));
 
   const categoryFilteredItems = activeCategory
     ? timeAvailableItems.filter((item) => normalizeCategory(item.category) === normalizeCategory(activeCategory))
@@ -233,7 +259,7 @@ export default function Home() {
         />
       </div>
 
-      {categoryButtons.length > 0 && (
+      {timeAvailableCategoryButtons.length > 0 && (
         <div style={{
           boxSizing: 'border-box', display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12,
         }}>
@@ -249,7 +275,7 @@ export default function Home() {
           >
             All
           </button>
-          {categoryButtons.map((btn) => {
+          {timeAvailableCategoryButtons.map((btn) => {
             const isActive = activeCategory && normalizeCategory(activeCategory) === normalizeCategory(btn.category_value);
             return (
               <button
