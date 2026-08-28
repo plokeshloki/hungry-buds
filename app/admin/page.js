@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function AdminLogin() {
   const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,19 +13,41 @@ export default function AdminLogin() {
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
+  useEffect(() => {
+    async function checkExistingSession() {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        router.push('/admin/dashboard');
+        return;
+      }
+      setCheckingSession(false);
+    }
+    checkExistingSession();
+  }, [router]);
+
   async function handleLogin(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const timeoutPromise = new Promise((resolve) =>
+      setTimeout(() => resolve({ timedOut: true }), 15000)
+    );
+
+    const result = await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      timeoutPromise,
+    ]);
+
+    if (result.timedOut) {
+      setLoading(false);
+      setError('This is taking too long. Please check your internet connection and try again.');
+      return;
+    }
 
     setLoading(false);
 
-    if (signInError) {
+    if (result.error) {
       setError('Incorrect email or password.');
       return;
     }
@@ -48,6 +71,14 @@ export default function AdminLogin() {
     } else {
       setResetSent(true);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif', padding: 24, textAlign: 'center' }}>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (resetSent) {
