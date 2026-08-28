@@ -48,7 +48,7 @@ export default function AdminLogin() {
     setLoading(false);
 
     if (result.error) {
-      setError('Incorrect email or password.');
+      setError(result.error.message || 'Login failed. Please try again.');
       return;
     }
 
