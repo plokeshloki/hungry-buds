@@ -27,6 +27,8 @@ export default function OrderLookup() {
 
   async function loadRecentOrders() {
     setLoadingOrders(true);
+    setError('');
+
     const { data: orderRows, error: orderError } = await supabase
       .from('orders')
       .select('id, created_at, status, total_amount, customer_id, payment_method, cash_collected')
@@ -39,20 +41,47 @@ export default function OrderLookup() {
       return;
     }
 
-    const ordersWithDetails = await Promise.all(
-      orderRows.map(async (order) => {
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('name, phone, college_name')
-          .eq('id', order.customer_id)
-          .single();
-        const { data: items } = await supabase
-          .from('order_items')
-          .select('item_name, quantity, unit_price')
-          .eq('order_id', order.id);
-        return { ...order, customer, items: items || [] };
-      })
-    );
+    if (!orderRows || orderRows.length === 0) {
+      setAllOrders([]);
+      setLoadingOrders(false);
+      return;
+    }
+
+    const orderIds = orderRows.map((o) => o.id);
+    const customerIds = [...new Set(orderRows.map((o) => o.customer_id).filter(Boolean))];
+
+    const [customersRes, itemsRes] = await Promise.all([
+      supabase.from('customers').select('id, name, phone, college_name').in('id', customerIds),
+      supabase.from('order_items').select('order_id, item_name, quantity, unit_price').in('order_id', orderIds),
+    ]);
+
+    if (customersRes.error) {
+      setError('Failed to load customer details: ' + customersRes.error.message);
+      setLoadingOrders(false);
+      return;
+    }
+    if (itemsRes.error) {
+      setError('Failed to load order items: ' + itemsRes.error.message);
+      setLoadingOrders(false);
+      return;
+    }
+
+    const customerById = {};
+    (customersRes.data || []).forEach((c) => {
+      customerById[c.id] = c;
+    });
+
+    const itemsByOrderId = {};
+    (itemsRes.data || []).forEach((item) => {
+      if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
+      itemsByOrderId[item.order_id].push(item);
+    });
+
+    const ordersWithDetails = orderRows.map((order) => ({
+      ...order,
+      customer: customerById[order.customer_id] || null,
+      items: itemsByOrderId[order.id] || [],
+    }));
 
     setAllOrders(ordersWithDetails);
     setLoadingOrders(false);
