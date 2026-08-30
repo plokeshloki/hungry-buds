@@ -39,27 +39,40 @@ export async function POST(request) {
       receipt: `hb_${Date.now()}`,
     });
 
-    // Save the order details right now, before the customer even opens their UPI app.
-    // This means even if their phone/browser doesn't come back properly after paying,
-    // the webhook can still find everything it needs to save the order.
-    const { error: pendingError } = await supabaseAdmin
-      .from('pending_orders')
-      .insert({
-        razorpay_order_id: order.id,
-        phone,
-        name,
-        college,
-        line_items: lineItems,
-        subtotal,
-        handling_fee: handlingFee,
-        total: amount,
-        order_window_id: orderWindowId || null,
-      });
+    // Save the safety-net record BEFORE the customer pays.
+    // This is critical: if this save fails, there is nothing to fall back on
+    // if the customer's browser doesn't come back after paying. So we now
+    // retry once, and if it still fails, we refuse to let checkout continue
+    // rather than silently letting a payment happen with no safety net.
+    async function savePendingOrder() {
+      return supabaseAdmin
+        .from('pending_orders')
+        .insert({
+          razorpay_order_id: order.id,
+          phone,
+          name,
+          college,
+          line_items: lineItems,
+          subtotal,
+          handling_fee: handlingFee,
+          total: amount,
+          order_window_id: orderWindowId || null,
+        });
+    }
+
+    let { error: pendingError } = await savePendingOrder();
 
     if (pendingError) {
-      console.error('Could not save pending order:', pendingError);
-      // Don't block checkout just because this safety-net save failed —
-      // the normal flow can still work fine without it.
+      console.error('Pending order save failed, retrying once:', pendingError);
+      ({ error: pendingError } = await savePendingOrder());
+    }
+
+    if (pendingError) {
+      console.error('Pending order save failed after retry — blocking checkout:', pendingError);
+      return NextResponse.json(
+        { error: 'Could not start checkout safely. Please try again in a moment.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ order });
