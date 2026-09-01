@@ -1,6 +1,7 @@
 'use client';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase } from '../../lib/supabaseClient';
 
 function OrderConfirmedContent() {
   const router = useRouter();
@@ -8,6 +9,24 @@ function OrderConfirmedContent() {
   const method = searchParams.get('method');
   const amount = searchParams.get('amount');
   const isCod = method === 'cod';
+
+  const [deliveryMessage, setDeliveryMessage] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState('');
+
+  useEffect(() => {
+    async function loadSettings() {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('delivery_message, delivery_time')
+        .limit(1)
+        .single();
+      if (data) {
+        setDeliveryMessage(data.delivery_message || '');
+        setDeliveryTime(data.delivery_time || '');
+      }
+    }
+    loadSettings();
+  }, []);
 
   return (
     <div style={{ maxWidth: 460, margin: '0 auto', fontFamily: 'sans-serif', padding: 24, textAlign: 'center', minHeight: '100vh', background: '#FFF8EE' }}>
@@ -25,13 +44,25 @@ function OrderConfirmedContent() {
           }}>
             Please pay ₹{amount} in cash when you pick up your order.
           </div>
-          <p style={{ color: '#555', marginTop: 13, fontSize: 16 }}>
-            Head to the pickup counter at your window's pickup time.
-          </p>
         </>
       ) : (
         <p style={{ color: '#555', marginTop: 13, fontSize: 16 }}>
-          Your payment was successful. Head to the pickup counter at your window's pickup time.
+          Your payment was successful.
+        </p>
+      )}
+
+      {deliveryTime && (
+        <div style={{
+          marginTop: 16, padding: 14, background: '#e6f4ea', color: '#2e7d32',
+          borderRadius: 10, fontWeight: 700, fontSize: 16,
+        }}>
+          Delivery time: {deliveryTime}
+        </div>
+      )}
+
+      {deliveryMessage && (
+        <p style={{ color: '#555', marginTop: 13, fontSize: 15 }}>
+          {deliveryMessage}
         </p>
       )}
 
