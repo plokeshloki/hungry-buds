@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 export default function MyOrders() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,10 +19,11 @@ export default function MyOrders() {
     setError('');
     setLoading(true);
     setOrders(null);
+    setCustomerName('');
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('id')
+      .select('id, name')
       .eq('phone', phone)
       .maybeSingle();
 
@@ -30,6 +32,8 @@ export default function MyOrders() {
       setLoading(false);
       return;
     }
+
+    setCustomerName(customer.name || '');
 
     const { data: orderRows } = await supabase
       .from('orders')
@@ -100,7 +104,7 @@ export default function MyOrders() {
 
       {orders !== null && orders.length > 0 && (
         <p style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>
-          Showing {orders.length} order{orders.length > 1 ? 's' : ''}
+          {customerName ? `Showing ${orders.length} order${orders.length > 1 ? 's' : ''} for ${customerName}` : `Showing ${orders.length} order${orders.length > 1 ? 's' : ''}`}
         </p>
       )}
 
