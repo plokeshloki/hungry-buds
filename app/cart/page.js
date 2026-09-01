@@ -378,7 +378,7 @@ export default function Cart() {
               <span>Subtotal</span><span>₹{subtotal}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, color: '#777' }}>
-              <span>Handling fee</span><span>₹{handlingFee}</span>
+              <span>Platform fee</span><span>₹{handlingFee}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15 }}>
               <span>Total</span><span>₹{total}</span>
