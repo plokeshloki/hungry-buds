@@ -3,6 +3,24 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
+// Retries a Supabase query a few times if it comes back with an error
+// (e.g. a temporary 401/network hiccup from Supabase's side), instead of
+// silently giving up on the very first failure.
+async function queryWithRetry(queryFn, retries = 3, delayMs = 700) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const { data, error } = await queryFn();
+    if (!error) {
+      return { data, error: null };
+    }
+    lastError = error;
+    if (attempt < retries) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return { data: null, error: lastError };
+}
+
 export default function MyOrders() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
@@ -21,11 +39,19 @@ export default function MyOrders() {
     setOrders(null);
     setCustomerName('');
 
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id, name')
-      .eq('phone', phone)
-      .maybeSingle();
+    const { data: customer, error: customerError } = await queryWithRetry(() =>
+      supabase
+        .from('customers')
+        .select('id, name')
+        .eq('phone', phone)
+        .maybeSingle()
+    );
+
+    if (customerError) {
+      setError('Having trouble loading your orders right now. Please wait a moment and tap View again.');
+      setLoading(false);
+      return;
+    }
 
     if (!customer) {
       setOrders([]);
@@ -35,20 +61,30 @@ export default function MyOrders() {
 
     setCustomerName(customer.name || '');
 
-    const { data: orderRows } = await supabase
-      .from('orders')
-      .select('id, created_at, status, total_amount')
-      .eq('customer_id', customer.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
+    const { data: orderRows, error: ordersError } = await queryWithRetry(() =>
+      supabase
+        .from('orders')
+        .select('id, created_at, status, total_amount')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+    );
+
+    if (ordersError) {
+      setError('Having trouble loading your orders right now. Please wait a moment and tap View again.');
+      setLoading(false);
+      return;
+    }
 
     const ordersWithItems = await Promise.all(
       (orderRows || []).map(async (order) => {
-        const { data: items } = await supabase
-          .from('order_items')
-          .select('item_name, quantity, unit_price')
-          .eq('order_id', order.id);
-        return { ...order, items: items || [] };
+        const { data: items, error: itemsError } = await queryWithRetry(() =>
+          supabase
+            .from('order_items')
+            .select('item_name, quantity, unit_price')
+            .eq('order_id', order.id)
+        );
+        return { ...order, items: itemsError ? [] : (items || []) };
       })
     );
 
