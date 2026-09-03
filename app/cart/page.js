@@ -20,6 +20,32 @@ function getOrderStatus(now, windows, closedMessage) {
   return { isOpen: false, message: closedMessage };
 }
 
+// Calls verify-order, and if the request itself fails (network drop, server
+// hiccup) rather than returning a clean error, tries once more after a short
+// pause before giving up. Returns { ok, data } either way so the caller
+// never has to deal with a thrown exception.
+async function verifyOrderWithRetry(payload, retries = 2, delayMs = 1500) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const verifyRes = await fetch('/api/verify-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const verifyData = await verifyRes.json();
+      return { ok: verifyRes.ok && verifyData.success, data: verifyData };
+    } catch (err) {
+      lastError = err;
+      console.error(`verify-order attempt ${attempt} failed:`, err);
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  return { ok: false, data: null, networkError: true, error: lastError };
+}
+
 export default function Cart() {
   const router = useRouter();
   const [cart, setCart] = useState({});
@@ -39,6 +65,9 @@ export default function Cart() {
   const [showCodConfirm, setShowCodConfirm] = useState(false);
   const [codPlacing, setCodPlacing] = useState(false);
   const [codRejectedMessage, setCodRejectedMessage] = useState(false);
+
+  // NEW: shown if payment succeeded but we couldn't confirm it after retrying.
+  const [paymentStuckInfo, setPaymentStuckInfo] = useState(null);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('hb_cart') || '{}');
@@ -114,6 +143,7 @@ export default function Cart() {
     if (!validateDetails()) return;
 
     setPaying(true);
+    setPaymentStuckInfo(null);
 
     try {
       const orderWindowId = localStorage.getItem('hb_window_id') || null;
@@ -140,7 +170,7 @@ export default function Cart() {
       const createData = await createRes.json();
 
       if (!createRes.ok || !createData.order) {
-        alert('Could not start payment. Please try again.');
+        alert(createData.error || 'Could not start payment. Please try again.');
         setPaying(false);
         return;
       }
@@ -156,36 +186,44 @@ export default function Cart() {
         order_id: razorpayOrder.id,
         handler: async function (response) {
           setConfirming(true);
-          const verifyRes = await fetch('/api/verify-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              phone,
-              name,
-              college,
-              orderWindowId,
-              lineItems: lineItems.map((i) => ({
-                id: i.id,
-                name: i.name,
-                price: i.price,
-                qty: i.qty,
-              })),
-              subtotal,
-              handlingFee,
-              total,
-            }),
-          });
-          const verifyData = await verifyRes.json();
 
-          if (verifyRes.ok && verifyData.success) {
+          const verifyPayload = {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            phone,
+            name,
+            college,
+            orderWindowId,
+            lineItems: lineItems.map((i) => ({
+              id: i.id,
+              name: i.name,
+              price: i.price,
+              qty: i.qty,
+            })),
+            subtotal,
+            handlingFee,
+            total,
+          };
+
+          const result = await verifyOrderWithRetry(verifyPayload);
+
+          if (result.ok) {
             localStorage.removeItem('hb_cart');
             router.push('/order-confirmed?method=online&amount=' + total);
           } else {
+            // Payment DID succeed with Razorpay at this point — money was taken.
+            // Even if our verify call failed, the webhook safety net will very
+            // likely save this order on its own shortly after. So we don't
+            // scare the customer into thinking they lost money — we tell them
+            // clearly what happened and give them their Payment ID, so if it
+            // genuinely wasn't saved, the restaurant can find and fix it fast.
             setConfirming(false);
-            alert('Payment verification failed. If money was deducted, it will be refunded automatically. Please contact the restaurant.');
+            setPaymentStuckInfo({
+              paymentId: response.razorpay_payment_id,
+              amount: total,
+              phone,
+            });
           }
           setPaying(false);
         },
@@ -292,6 +330,48 @@ export default function Cart() {
             This usually takes just a few seconds. Please don't close this page.
           </p>
           <style>{`@keyframes hb-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {paymentStuckInfo && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20,
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 14, padding: 22, maxWidth: 340, width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+          }}>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#a33c26' }}>
+              Your payment went through
+            </p>
+            <p style={{ fontSize: 13, color: '#444', marginBottom: 10, lineHeight: 1.5 }}>
+              We took ₹{paymentStuckInfo.amount} but had trouble confirming your order on this screen.
+              Your order is almost certainly being saved automatically in the background —
+              but to be safe, please save this info and contact the restaurant if you don't
+              see it in "My Orders" within a few minutes:
+            </p>
+            <div style={{ background: '#FFF8EE', borderRadius: 8, padding: 10, fontSize: 12, marginBottom: 14 }}>
+              <div><strong>Payment ID:</strong> {paymentStuckInfo.paymentId}</div>
+              <div><strong>Phone:</strong> {paymentStuckInfo.phone}</div>
+              <div><strong>Amount:</strong> ₹{paymentStuckInfo.amount}</div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('hb_cart');
+                setPaymentStuckInfo(null);
+                router.push('/my-orders');
+              }}
+              style={{
+                width: '100%', padding: 11, background: '#D9642B', color: '#fff',
+                border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+              }}
+            >
+              Check My Orders
+            </button>
+          </div>
         </div>
       )}
 
